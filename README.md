@@ -2,6 +2,12 @@
 
 企业知识库 Agent，目标是在 3 个月内完成一个可以演示、可以部署、可以写进简历的 RAG + Agent 项目。
 
+## 学习方式
+
+本项目采用“教练模式”推进：先讲最小概念，再由学习者亲自完成小任务，随后 review、纠错和总结。
+
+后续 AI/Codex 助手请先阅读 [AGENTS.md](AGENTS.md)，不要默认直接代写完整功能。
+
 ## 项目目标
 
 - 支持上传 PDF、txt、markdown 文档。
@@ -59,4 +65,3 @@ uvicorn app.main:app --reload
 - [ ] Day 2：FastAPI 路由和 `/api/chat` 空接口
 - [ ] Day 3：Pydantic 请求响应模型
 - [ ] Day 4：MySQL 连接和基础表设计
-
