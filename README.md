@@ -12,8 +12,8 @@
 
 - 支持上传 PDF、txt、markdown 文档。
 - 解析文档并切分为 chunks。
-- 使用 Chroma 保存 embedding 向量并进行相似度检索。
-- 使用 MySQL 保存文档元数据、会话、消息、调用日志和评测结果。
+- 使用 PostgreSQL 保存文档元数据、会话、消息、调用日志和评测结果。
+- 后续使用 pgvector 保存 embedding 向量并进行相似度检索。
 - 基于 RAG 回答问题，并展示引用来源。
 - 支持 tool calling、权限确认、trace 日志和评测集。
 
@@ -21,8 +21,8 @@
 
 - Python
 - FastAPI
-- MySQL
-- Chroma
+- PostgreSQL
+- pgvector
 - SQLAlchemy
 - LLM API
 - Docker
@@ -64,4 +64,4 @@ uvicorn app.main:app --reload
 - [x] Day 1：项目骨架
 - [ ] Day 2：FastAPI 路由和 `/api/chat` 空接口
 - [ ] Day 3：Pydantic 请求响应模型
-- [ ] Day 4：MySQL 连接和基础表设计
+- [ ] Day 4：PostgreSQL 连接和基础表设计

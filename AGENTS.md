@@ -85,7 +85,6 @@ AI 应该帮助总结、纠错，并把当天 checklist 更新为已完成。
 - Day 1：项目骨架
 - Day 2：FastAPI 路由和 `/api/chat` 空接口
 - Day 3：Pydantic 请求响应模型
-- Day 4：MySQL 连接和基础表设计
+- Day 4：PostgreSQL 连接和基础表设计
 
 每次继续学习前，先确认当前 Day，不要跳太快。
-
