@@ -1,5 +1,3 @@
-from email import message
-
 from pydantic import BaseModel  
 
 class ChatRequest(BaseModel):
@@ -10,3 +8,4 @@ class ChatResponse(BaseModel):
     session_id: int
     user_message_id: int
     assistant_message_id: int
+    latency_ms: int
