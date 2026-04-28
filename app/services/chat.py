@@ -1,9 +1,12 @@
 from sqlalchemy.orm import Session
 from app.models.chat import ChatSession, ChatMessage
+import time
+from app.services.llm import LLMService
 
 class ChatService:
     def __init__(self, db:Session):
         self.db = db
+        self.llm = LLMService()
     
     def create_session(self, title:str) -> ChatSession:
         """创建新的聊天会话"""
@@ -20,3 +23,7 @@ class ChatService:
         self.db.commit()
         self.db.refresh(message)
         return message
+
+    def chat(self, user_message: str) -> tuple[str, float]:
+        answer, latency = self.llm.chat(user_message)    
+        return answer, latency

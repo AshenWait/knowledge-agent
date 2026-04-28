@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column#mapped_column(...) 表示这个字段在数据库里怎么定义
+from sqlalchemy.orm import Mapped, Session, mapped_column#mapped_column(...) 表示这个字段在数据库里怎么定义
 
 #Base 是所有 ORM 模型的基类。
 #你的 Document(Base)、Chunk(Base) 继承它之后，SQLAlchemy 才知道：这两个类要变成数据库表。
@@ -28,3 +28,15 @@ class Chunk(Base):
     page_number: Mapped[int] = mapped_column(Integer, default=0)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+class DocumentService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create_document(self, filename: str, file_path: str) -> Document:
+        """保存文档元数据到数据库"""
+        doc = Document(filename=filename, file_path=file_path)
+        self.db.add(doc)
+        self.db.commit()
+        self.db.refresh(doc)
+        return doc

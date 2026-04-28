@@ -1,7 +1,12 @@
+from sqlite3 import dbapi2
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+
+from collections.abc import Generator
+from sqlalchemy.orm import Session
 
 engine = create_engine(settings.database_url, echo=False)#拿到数据库信息
 
@@ -29,3 +34,10 @@ def check_database_connection() -> bool:
     with engine.connect() as connection:
         result = connection.execute(text("SELECT 1"))
         return result.scalar_one() == 1
+    
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

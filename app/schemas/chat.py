@@ -7,3 +7,6 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+    session_id: int
+    user_message_id: int
+    assistant_message_id: int
