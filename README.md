@@ -28,6 +28,7 @@
 - pydantic-settings + python-dotenv
 - OpenAI Python SDK（当前用于 DeepSeek 兼容接口）
 - python-multipart（文件上传表单解析）
+- pypdf（PDF 文本解析）
 - Uvicorn
 - Docker
 
@@ -123,7 +124,8 @@ POST /api/documents/upload
   -> 检查 content_type，只允许 application/pdf
   -> 读取文件内容，并限制最大 10MB
   -> 保存到 storage/uploads/
-  -> 返回 filename、content_type、file_path
+  -> app/services/pdf_parser.py 的 extract_pdf_pages() 解析 PDF
+  -> 返回 filename、content_type、file_path、page_count
 ```
 
 关键点：
@@ -135,6 +137,9 @@ POST /api/documents/upload
 | `Path("storage/uploads")` | 表示文件保存目录 |
 | `file.file.read()` | 读取上传文件内容 |
 | `write_bytes()` | 把二进制内容写入本地文件 |
+| `PdfReader` | pypdf 用来读取 PDF 结构 |
+| `page.extract_text()` | 抽取某一页的文本 |
+| `page_count` | 当前 PDF 的页数 |
 
 ## 当前进度
 
@@ -146,4 +151,5 @@ POST /api/documents/upload
 - [x] Day 6：LLM API 普通聊天和调用记录
 - [x] Day 7：运行说明、复盘和 Git 提交
 - [x] Day 8：PDF 上传接口、文件类型限制和本地保存
-- [ ] Day 9：PDF 文本解析
+- [x] Day 9：PDF 文本解析
+- [ ] Day 10：文档元数据保存到 PostgreSQL
