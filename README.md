@@ -27,6 +27,7 @@
 - SQLAlchemy
 - pydantic-settings + python-dotenv
 - OpenAI Python SDK（当前用于 DeepSeek 兼容接口）
+- python-multipart（文件上传表单解析）
 - Uvicorn
 - Docker
 
@@ -101,15 +102,39 @@ POST /api/chat
 
 关键文件说明：
 
-| 文件                 | 作用                                           |
-| :------------------- | :--------------------------------------------- |
-| app/main.py          | 创建 FastAPI 应用，并挂载路由                  |
-| app/api/chat.py      | 定义 /api/chat 接口，负责接收请求和调用业务层  |
-| app/schemas/chat.py  | 定义请求和响应格式：ChatRequest、ChatResponse  |
-| app/services/chat.py | 聊天业务逻辑：创建会话、保存消息、调用 LLM     |
-| app/services/llm.py  | 调用 DeepSeek 兼容接口，并计算模型耗时         |
-| app/core/database.py | 创建数据库连接，并提供 get_db()                |
-| app/models/chat.py   | 定义聊天相关数据库表：ChatSession、ChatMessage |
+| 文件 | 作用 |
+| --- | --- |
+| `app/main.py` | 创建 FastAPI 应用，并挂载路由 |
+| `app/api/chat.py` | 定义 `/api/chat` 接口，负责接收请求和调用业务层 |
+| `app/schemas/chat.py` | 定义请求和响应格式：`ChatRequest`、`ChatResponse` |
+| `app/services/chat.py` | 聊天业务逻辑：创建会话、保存消息、调用 LLM |
+| `app/services/llm.py` | 调用 DeepSeek 兼容接口，并计算模型耗时 |
+| `app/core/database.py` | 创建数据库连接，并提供 `get_db()` |
+| `app/models/chat.py` | 定义聊天相关数据库表：`ChatSession`、`ChatMessage` |
+
+### `/api/documents/upload` 文档上传接口
+
+一次 PDF 上传请求的流程：
+
+```txt
+POST /api/documents/upload
+  -> app/api/documents.py 的 upload_document()
+  -> UploadFile 接收浏览器上传的文件
+  -> 检查 content_type，只允许 application/pdf
+  -> 读取文件内容，并限制最大 10MB
+  -> 保存到 storage/uploads/
+  -> 返回 filename、content_type、file_path
+```
+
+关键点：
+
+| 名称 | 作用 |
+| --- | --- |
+| `UploadFile` | FastAPI 用来接收上传文件 |
+| `python-multipart` | 解析 `multipart/form-data` 文件上传请求 |
+| `Path("storage/uploads")` | 表示文件保存目录 |
+| `file.file.read()` | 读取上传文件内容 |
+| `write_bytes()` | 把二进制内容写入本地文件 |
 
 ## 当前进度
 
@@ -119,4 +144,6 @@ POST /api/chat
 - [x] Day 4：PostgreSQL 连接和基础表设计
 - [x] Day 5：Service 层拆分
 - [x] Day 6：LLM API 普通聊天和调用记录
-- [ ] Day 7：运行说明、复盘和 Git 提交
+- [x] Day 7：运行说明、复盘和 Git 提交
+- [x] Day 8：PDF 上传接口、文件类型限制和本地保存
+- [ ] Day 9：PDF 文本解析
