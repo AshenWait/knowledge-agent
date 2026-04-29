@@ -27,13 +27,24 @@ def upload_document(
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # 表示目录不存在就创建，存在也不报错
     content = file.file.read()  # 读取上传文件内容
+
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="文件不能为空")
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="文件不能超过 10MB")
 
     file_path = UPLOAD_DIR / file.filename  # 拼接路径
     file_path.write_bytes(content)  # 保存内容
 
-    pages = parse_document(str(file_path), file.filename)  # 解析文档，返回统一列表
+    try:
+        pages = parse_document(str(file_path), file.filename)  # 解析文档，返回统一列表
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="文档解析失败，请检查文件是否损坏") from exc
+
+    has_text = any(str(page["text"]).strip() for page in pages)
+    if not has_text:
+        raise HTTPException(status_code=400, detail="文档没有可解析文本，可能是扫描版 PDF")
+
     service = DocumentService(db)
     # 为了返回给用户一个ID用来查询保存记录
     document = service.create_document(
