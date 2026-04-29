@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.schemas.document import DocumentResponse
 from app.services.document import DocumentService
 from app.services.pdf_parser import extract_pdf_pages
 
@@ -45,4 +46,53 @@ def upload_document(
         "content_type": file.content_type,
         "file_path": str(file_path),
         "page_count": len(pages),
+    }
+
+@router.get("", response_model=list[DocumentResponse])
+def list_documents(db: Session = Depends(get_db)) -> list[dict]:
+    service = DocumentService(db)
+    documents = service.list_documents()
+
+    return [
+        {
+            "id": doc.id,
+            "filename": doc.filename,
+            "file_path": doc.file_path,
+            "content_type": doc.content_type,
+            "page_count": doc.page_count,
+            "created_at": doc.created_at,
+        }
+        for doc in documents
+    ]
+
+
+@router.get("/{document_id}", response_model=DocumentResponse)
+def get_document(document_id: int, db: Session = Depends(get_db)) -> dict:
+    service = DocumentService(db)
+    document = service.get_document(document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="文档不存在")
+
+    return {
+        "id": document.id,
+        "filename": document.filename,
+        "file_path": document.file_path,
+        "content_type": document.content_type,
+        "page_count": document.page_count,
+        "created_at": document.created_at,
+    }
+
+
+@router.delete("/{document_id}")
+def delete_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+) -> dict[str, int | str]:
+    service = DocumentService(db)
+    deleted = service.delete_document(document_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {
+        "document_id": document_id,
+        "message": "文档已删除",
     }

@@ -35,3 +35,12 @@ class DocumentService:
     def get_document(self, document_id: int) -> Document | None:
         """根据 id 获取单个文档"""
         return self.db.query(Document).filter(Document.id == document_id).first()
+
+    def delete_document(self, document_id: int) -> bool:
+        """根据 id 删除单个文档"""
+        document = self.get_document(document_id)
+        if document is None:
+            return False
+        self.db.delete(document)
+        self.db.commit()
+        return True

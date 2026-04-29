@@ -144,6 +144,29 @@ POST /api/documents/upload
 | `DocumentService` | 保存文档元数据到 PostgreSQL |
 | `document_id` | 数据库生成的文档记录 ID |
 
+### 文档管理接口
+
+当前支持 3 个文档管理接口：
+
+| 接口 | 作用 |
+| --- | --- |
+| `GET /api/documents` | 返回所有文档元数据 |
+| `GET /api/documents/{document_id}` | 根据 ID 返回单个文档 |
+| `DELETE /api/documents/{document_id}` | 根据 ID 删除文档数据库记录 |
+
+接口分层：
+
+```txt
+app/api/documents.py
+  -> 接收 HTTP 请求，处理 404 等接口错误
+app/services/document.py
+  -> list_documents() 查询文档列表
+  -> get_document() 查询单个文档
+  -> delete_document() 删除文档记录
+app/schemas/document.py
+  -> DocumentResponse 定义文档响应格式
+```
+
 ## 当前进度
 
 - [x] Day 1：项目骨架
@@ -156,4 +179,5 @@ POST /api/documents/upload
 - [x] Day 8：PDF 上传接口、文件类型限制和本地保存
 - [x] Day 9：PDF 文本解析
 - [x] Day 10：文档元数据保存到 PostgreSQL
-- [ ] Day 11：文档列表、详情和删除接口
+- [x] Day 11：文档列表、详情和删除接口
+- [ ] Day 12：txt 和 markdown 文件解析
