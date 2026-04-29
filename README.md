@@ -125,7 +125,8 @@ POST /api/documents/upload
   -> 读取文件内容，并限制最大 10MB
   -> 保存到 storage/uploads/
   -> app/services/pdf_parser.py 的 extract_pdf_pages() 解析 PDF
-  -> 返回 filename、content_type、file_path、page_count
+  -> app/services/document.py 的 DocumentService 保存文档元数据
+  -> 返回 document_id、filename、content_type、file_path、page_count
 ```
 
 关键点：
@@ -140,6 +141,8 @@ POST /api/documents/upload
 | `PdfReader` | pypdf 用来读取 PDF 结构 |
 | `page.extract_text()` | 抽取某一页的文本 |
 | `page_count` | 当前 PDF 的页数 |
+| `DocumentService` | 保存文档元数据到 PostgreSQL |
+| `document_id` | 数据库生成的文档记录 ID |
 
 ## 当前进度
 
@@ -152,4 +155,5 @@ POST /api/documents/upload
 - [x] Day 7：运行说明、复盘和 Git 提交
 - [x] Day 8：PDF 上传接口、文件类型限制和本地保存
 - [x] Day 9：PDF 文本解析
-- [ ] Day 10：文档元数据保存到 PostgreSQL
+- [x] Day 10：文档元数据保存到 PostgreSQL
+- [ ] Day 11：文档列表、详情和删除接口
