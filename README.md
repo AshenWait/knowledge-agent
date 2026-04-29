@@ -184,5 +184,5 @@ app/schemas/document.py
 - [x] Day 10：文档元数据保存到 PostgreSQL
 - [x] Day 11：文档列表、详情和删除接口
 - [x] Day 12：txt 和 markdown 文件解析
-- [x] Day 13：解析失败、空文件和扫描版 PDF 处理
+- [x] Day 13：解析失败、空文件和无可解析文本处理
 - [ ] Day 14：README 增加文档上传和解析说明，准备测试文档

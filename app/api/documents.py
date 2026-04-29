@@ -43,7 +43,7 @@ def upload_document(
 
     has_text = any(str(page["text"]).strip() for page in pages)
     if not has_text:
-        raise HTTPException(status_code=400, detail="文档没有可解析文本，可能是扫描版 PDF")
+        raise HTTPException(status_code=400, detail="文档没有可解析文本，请检查文件内容")
 
     service = DocumentService(db)
     # 为了返回给用户一个ID用来查询保存记录
