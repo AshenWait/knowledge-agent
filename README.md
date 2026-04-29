@@ -169,8 +169,10 @@ POST /api/documents/upload
   -> 保存到 storage/uploads/
   -> app/services/document_parser.py 的 parse_document() 统一解析文档
   -> 解析失败或没有可解析文本时返回清楚错误
+  -> app/services/text_splitter.py 的 split_pages() 切分 chunks
   -> app/services/document.py 的 DocumentService 保存文档元数据
-  -> 返回 document_id、filename、content_type、file_path、page_count
+  -> 保存 chunks 到 PostgreSQL
+  -> 返回 document_id、filename、content_type、file_path、page_count、chunk_count
 ```
 
 关键点：
@@ -183,10 +185,12 @@ POST /api/documents/upload
 | `file.file.read()` | 读取上传文件内容 |
 | `write_bytes()` | 把二进制内容写入本地文件 |
 | `parse_document()` | 根据文件后缀选择 PDF 或文本解析方式 |
+| `split_pages()` | 把解析后的页文本切成 chunks |
 | `PdfReader` | pypdf 用来读取 PDF 结构 |
 | `page.extract_text()` | 抽取某一页的文本 |
 | `HTTPException` | 主动返回清楚的接口错误 |
 | `page_count` | 当前 PDF 的页数 |
+| `chunk_count` | 当前文档保存的 chunk 数量 |
 | `DocumentService` | 保存文档元数据到 PostgreSQL |
 | `document_id` | 数据库生成的文档记录 ID |
 
@@ -198,6 +202,7 @@ POST /api/documents/upload
 | --- | --- |
 | `GET /api/documents` | 返回所有文档元数据 |
 | `GET /api/documents/{document_id}` | 根据 ID 返回单个文档 |
+| `GET /api/documents/{document_id}/chunks` | 查询某篇文档的 chunks |
 | `DELETE /api/documents/{document_id}` | 根据 ID 删除文档数据库记录 |
 
 接口分层：
@@ -208,9 +213,11 @@ app/api/documents.py
 app/services/document.py
   -> list_documents() 查询文档列表
   -> get_document() 查询单个文档
-  -> delete_document() 删除文档记录
+  -> list_chunks() 查询某篇文档的 chunks
+  -> delete_document() 删除文档记录和对应 chunks
 app/schemas/document.py
   -> DocumentResponse 定义文档响应格式
+  -> ChunkResponse 定义 chunk 响应格式
 ```
 
 ### 文本切分流程
@@ -250,4 +257,5 @@ app/services/text_splitter.py
 - [x] Day 13：解析失败、空文件和无可解析文本处理
 - [x] Day 14：README 增加文档上传和解析说明，准备测试文档
 - [x] Day 15：文本切分 chunk size 和 overlap
-- [ ] Day 16：保存 chunk 元数据和原文到 PostgreSQL
+- [x] Day 16：保存 chunk 元数据和原文到 PostgreSQL
+- [ ] Day 17：接入 embedding API

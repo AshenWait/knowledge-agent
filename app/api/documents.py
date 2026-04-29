@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.document import DocumentResponse
+from app.schemas.document import ChunkResponse, DocumentResponse
 from app.services.document import DocumentService
 from app.services.document_parser import parse_document
+from app.services.text_splitter import split_pages
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -46,20 +47,25 @@ def upload_document(
         raise HTTPException(status_code=400, detail="文档没有可解析文本，请检查文件内容")
 
     service = DocumentService(db)
-    # 为了返回给用户一个ID用来查询保存记录
+
+    # 保存文档元数据到数据库
     document = service.create_document(
         filename=file.filename,
         file_path=str(file_path),
         content_type=file.content_type or "",
         page_count=len(pages),
     )
+    chunks = split_pages(pages)
+    saved_chunks = service.create_chunks(document.id, chunks)
     return {
         "document_id": document.id,
         "filename": file.filename,
         "content_type": file.content_type,
         "file_path": str(file_path),
         "page_count": len(pages),
+        "chunk_count": len(saved_chunks),
     }
+
 
 @router.get("", response_model=list[DocumentResponse])
 def list_documents(db: Session = Depends(get_db)) -> list[dict]:
@@ -94,6 +100,27 @@ def get_document(document_id: int, db: Session = Depends(get_db)) -> dict:
         "page_count": document.page_count,
         "created_at": document.created_at,
     }
+
+
+@router.get("/{document_id}/chunks", response_model=list[ChunkResponse])
+def list_document_chunks(document_id: int, db: Session = Depends(get_db)) -> list[dict]:
+    service = DocumentService(db)
+    document = service.get_document(document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="文档不存在")
+
+    chunks = service.list_chunks(document_id)
+    return [
+        {
+            "id": chunk.id,
+            "document_id": chunk.document_id,
+            "content": chunk.content,
+            "page_number": chunk.page_number,
+            "chunk_index": chunk.chunk_index,
+            "created_at": chunk.created_at,
+        }
+        for chunk in chunks
+    ]
 
 
 @router.delete("/{document_id}")

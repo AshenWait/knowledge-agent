@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models.document import Document
+from app.models.document import Chunk, Document
 
 
 class DocumentService:
@@ -28,6 +28,27 @@ class DocumentService:
         self.db.refresh(doc)
         return doc
 
+    def create_chunks(
+        self,
+        document_id: int,
+        chunks: list[dict[str, str | int]],
+    ) -> list[Chunk]:
+        """保存文档 chunks 到数据库"""
+        chunk_objects = [
+            Chunk(  # chunks 表模板
+                document_id=document_id,
+                content=str(chunk["content"]),
+                page_number=int(chunk["page_number"]),
+                chunk_index=int(chunk["chunk_index"]),
+            )
+            for chunk in chunks
+        ]
+        self.db.add_all(chunk_objects)  # 放进数据库会话
+        self.db.commit()  # 真正写进 PostgreSQL
+        for chunk in chunk_objects:
+            self.db.refresh(chunk)
+        return chunk_objects
+
     def list_documents(self) -> list[Document]:
         """获取所有文档列表"""
         return self.db.query(Document).all()
@@ -36,11 +57,21 @@ class DocumentService:
         """根据 id 获取单个文档"""
         return self.db.query(Document).filter(Document.id == document_id).first()
 
+    def list_chunks(self, document_id: int) -> list[Chunk]:
+        """查询某篇文档的 chunks"""
+        return (
+            self.db.query(Chunk)
+            .filter(Chunk.document_id == document_id)
+            .order_by(Chunk.chunk_index)
+            .all()
+        )
+
     def delete_document(self, document_id: int) -> bool:
         """根据 id 删除单个文档"""
         document = self.get_document(document_id)
         if document is None:
             return False
+        self.db.query(Chunk).filter(Chunk.document_id == document_id).delete()
         self.db.delete(document)
         self.db.commit()
         return True

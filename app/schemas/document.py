@@ -11,3 +11,12 @@ class DocumentResponse(BaseModel):
     content_type: str
     page_count: int
     created_at: datetime
+
+
+class ChunkResponse(BaseModel):
+    id: int
+    document_id: int
+    content: str
+    page_number: int
+    chunk_index: int
+    created_at: datetime
