@@ -84,6 +84,49 @@ python -m tests.check_database
 python -m tests.create_tables
 ```
 
+## 文档上传和解析验证
+
+项目自带 3 个测试文档：
+
+| 文件 | 用途 |
+| --- | --- |
+| `tests/fixtures/sample.pdf` | 验证 PDF 上传和 `pypdf` 文本抽取 |
+| `tests/fixtures/sample.txt` | 验证 txt 上传和文本解析 |
+| `tests/fixtures/sample.md` | 验证 markdown 上传和文本解析 |
+
+启动服务后，打开接口文档：
+
+```txt
+http://127.0.0.1:8000/docs
+```
+
+在 `POST /api/documents/upload` 中选择测试文档上传。成功时会返回：
+
+```json
+{
+  "document_id": 1,
+  "filename": "sample.pdf",
+  "content_type": "application/pdf",
+  "file_path": "storage\\uploads\\sample.pdf",
+  "page_count": 1
+}
+```
+
+然后可以用文档管理接口验证数据库记录：
+
+| 接口 | 作用 |
+| --- | --- |
+| `GET /api/documents` | 查看所有已上传文档 |
+| `GET /api/documents/{document_id}` | 查看单个文档元数据 |
+| `DELETE /api/documents/{document_id}` | 删除单个文档数据库记录 |
+
+当前上传限制：
+
+- 只支持 `.pdf`、`.txt`、`.md`、`.markdown`。
+- 文件不能超过 10MB。
+- 空文件会被拒绝。
+- 没有可解析文本的文件会被拒绝。
+
 ## 当前程序流程
 
 ### `/api/chat` 聊天接口
@@ -185,4 +228,5 @@ app/schemas/document.py
 - [x] Day 11：文档列表、详情和删除接口
 - [x] Day 12：txt 和 markdown 文件解析
 - [x] Day 13：解析失败、空文件和无可解析文本处理
-- [ ] Day 14：README 增加文档上传和解析说明，准备测试文档
+- [x] Day 14：README 增加文档上传和解析说明，准备测试文档
+- [ ] Day 15：文本切分 chunk size 和 overlap
