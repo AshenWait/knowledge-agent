@@ -121,10 +121,10 @@ POST /api/chat
 POST /api/documents/upload
   -> app/api/documents.py 的 upload_document()
   -> UploadFile 接收浏览器上传的文件
-  -> 检查 content_type，只允许 application/pdf
+  -> 检查文件后缀，只允许 .pdf、.txt、.md、.markdown
   -> 读取文件内容，并限制最大 10MB
   -> 保存到 storage/uploads/
-  -> app/services/pdf_parser.py 的 extract_pdf_pages() 解析 PDF
+  -> app/services/document_parser.py 的 parse_document() 统一解析文档
   -> app/services/document.py 的 DocumentService 保存文档元数据
   -> 返回 document_id、filename、content_type、file_path、page_count
 ```
@@ -138,6 +138,7 @@ POST /api/documents/upload
 | `Path("storage/uploads")` | 表示文件保存目录 |
 | `file.file.read()` | 读取上传文件内容 |
 | `write_bytes()` | 把二进制内容写入本地文件 |
+| `parse_document()` | 根据文件后缀选择 PDF 或文本解析方式 |
 | `PdfReader` | pypdf 用来读取 PDF 结构 |
 | `page.extract_text()` | 抽取某一页的文本 |
 | `page_count` | 当前 PDF 的页数 |
@@ -180,4 +181,5 @@ app/schemas/document.py
 - [x] Day 9：PDF 文本解析
 - [x] Day 10：文档元数据保存到 PostgreSQL
 - [x] Day 11：文档列表、详情和删除接口
-- [ ] Day 12：txt 和 markdown 文件解析
+- [x] Day 12：txt 和 markdown 文件解析
+- [ ] Day 13：解析失败、空文件和扫描版 PDF 处理

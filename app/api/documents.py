@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.document import DocumentResponse
 from app.services.document import DocumentService
-from app.services.pdf_parser import extract_pdf_pages
+from app.services.document_parser import parse_document
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 UPLOAD_DIR = Path("storage/uploads")
 MAX_FILE_SIZE = 10 * 1024 * 1024
+ALLOWED_SUFFIXES = {".pdf", ".txt", ".md", ".markdown"}
 
 
 @router.post("/upload")
@@ -20,8 +21,9 @@ def upload_document(
     db: Session = Depends(get_db),  # 每次处理上传请求时，自动帮我们创建一个数据库 Session，传给 db
 ) -> dict[str, str | int | None]:
     # 类型检验/限制大小
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="只支持上传 PDF 文件")
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(status_code=400, detail="只支持上传 PDF、txt、markdown 文件")
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # 表示目录不存在就创建，存在也不报错
     content = file.file.read()  # 读取上传文件内容
@@ -31,7 +33,7 @@ def upload_document(
     file_path = UPLOAD_DIR / file.filename  # 拼接路径
     file_path.write_bytes(content)  # 保存内容
 
-    pages = extract_pdf_pages(str(file_path))  # 解析PDF，返回列表
+    pages = parse_document(str(file_path), file.filename)  # 解析文档，返回统一列表
     service = DocumentService(db)
     # 为了返回给用户一个ID用来查询保存记录
     document = service.create_document(
