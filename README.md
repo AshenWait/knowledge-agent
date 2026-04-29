@@ -213,6 +213,26 @@ app/schemas/document.py
   -> DocumentResponse 定义文档响应格式
 ```
 
+### 文本切分流程
+
+解析后的文档页会继续切成 chunks，供后续 embedding 和检索使用。
+
+```txt
+app/services/document_parser.py
+  -> parse_document() 返回 page_number + text
+app/services/text_splitter.py
+  -> split_text() 按 chunk_size 和 overlap 切分一段文本
+  -> split_pages() 把多页文本切成带 page_number、chunk_index、content 的 chunks
+```
+
+关键概念：
+
+| 名称 | 作用 |
+| --- | --- |
+| `chunk_size` | 每个 chunk 的最大字符数 |
+| `overlap` | 相邻 chunk 重叠的字符数，用来保留上下文 |
+| `chunk_index` | chunk 在整篇文档中的顺序 |
+
 ## 当前进度
 
 - [x] Day 1：项目骨架
@@ -229,4 +249,5 @@ app/schemas/document.py
 - [x] Day 12：txt 和 markdown 文件解析
 - [x] Day 13：解析失败、空文件和无可解析文本处理
 - [x] Day 14：README 增加文档上传和解析说明，准备测试文档
-- [ ] Day 15：文本切分 chunk size 和 overlap
+- [x] Day 15：文本切分 chunk size 和 overlap
+- [ ] Day 16：保存 chunk 元数据和原文到 PostgreSQL
