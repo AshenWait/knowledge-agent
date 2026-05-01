@@ -28,13 +28,15 @@ class ChatService:
         self.db.refresh(message)
         return message
 
-    def chat(self, user_message: str) -> tuple[str, float, list[dict[str, int | str]]]:
-        query_embedding = self.embedding.embed_text(user_message)
-        chunks = self.document_service.search_similar_chunks(query_embedding, limit=3)
+    def chat(self, user_message: str) -> tuple[str, float, list[dict[str, int | str | float]]]:
+        query_embedding = self.embedding.embed_text(user_message)   #问题转向量
+        # 相似度搜索返回 [(chunk1, 0.12), (chunk2, 0.35)]，distance 越小越相关
+        chunk_results = self.document_service.search_similar_chunks(query_embedding, limit=3)
 
+        #大模型只认文本，所以要把无关字段剔除
         context = "\n\n".join(
             f"资料{index+1}:\n{chunk.content}"
-            for index, chunk in enumerate(chunks)
+            for index, (chunk, distance) in enumerate(chunk_results)
         )
         prompt = f"""
 你是 Knowledge Agent，请根据下面的资料回答用户问题。
@@ -47,15 +49,17 @@ class ChatService:
 用户问题：
 {user_message}
 """
-
+        #访问大模型
         answer, latency = self.llm.chat(prompt)
+        #返回给响应体
         sources = [
             {
                 "chunk_id": chunk.id,
                 "document_id": chunk.document_id,
                 "chunk_index": chunk.chunk_index,
                 "content": chunk.content,
+                "distance": distance,
             }
-            for chunk in chunks
+            for chunk, distance in chunk_results
         ]
         return answer, latency, sources

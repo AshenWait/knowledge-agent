@@ -97,7 +97,8 @@ def search_documents(query: str, limit: int = 3, db: Session = Depends(get_db)):
     embedding_service = EmbeddingService()
     query_embedding = embedding_service.embed_text(query)
     service = DocumentService(db)
-    chunks = service.search_similar_chunks(query_embedding, limit)
+
+    chunk_results = service.search_similar_chunks(query_embedding, limit)
 
     return [
         {
@@ -105,8 +106,9 @@ def search_documents(query: str, limit: int = 3, db: Session = Depends(get_db)):
             "document_id": chunk.document_id,
             "chunk_index": chunk.chunk_index,
             "content": chunk.content,
+            "distance": distance,
         }
-        for chunk in chunks
+        for chunk, distance in chunk_results
     ]
 
 @router.get("/{document_id}", response_model=DocumentResponse)
@@ -160,6 +162,5 @@ def delete_document(
         "document_id": document_id,
         "message": "文档已删除",
     }
-
 
 

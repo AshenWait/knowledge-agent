@@ -7,11 +7,12 @@ class ChatRequest(BaseModel):
 
 
 class ChatSource(BaseModel):
-    """相关文档结构"""
+    """相似文档结构"""
     chunk_id: int
     document_id: int
     chunk_index: int
     content: str
+    distance: float
 
 
 class ChatResponse(BaseModel):
