@@ -5,6 +5,9 @@ from app.services.document import DocumentService
 from app.services.embedding import EmbeddingService
 from app.services.llm import LLMService
 
+MAX_RAG_DISTANCE = 0.8
+
+
 class ChatService:
     def __init__(self, db:Session):
         self.db = db
@@ -32,11 +35,19 @@ class ChatService:
         query_embedding = self.embedding.embed_text(user_message)   #问题转向量
         # 相似度搜索返回 [(chunk1, 0.12), (chunk2, 0.35)]，distance 越小越相关
         chunk_results = self.document_service.search_similar_chunks(query_embedding, limit=3)
+        #过滤不相关chunks
+        relevant_results = [
+            (chunk, distance)
+            for chunk, distance in chunk_results
+            if distance <= MAX_RAG_DISTANCE
+        ]
+        if not relevant_results:
+            return "我在已上传文档里没有找到足够信息。", 0.0, []
 
         #大模型只认文本，所以要把无关字段剔除
         context = "\n\n".join(
             f"资料{index+1}:\n{chunk.content}"
-            for index, (chunk, distance) in enumerate(chunk_results)
+            for index, (chunk, distance) in enumerate(relevant_results)
         )
         prompt = f"""
 你是 Knowledge Agent，请根据下面的资料回答用户问题。
@@ -49,7 +60,7 @@ class ChatService:
 用户问题：
 {user_message}
 """
-        #访问大模型
+        #访问大模型,回答与请求耗时
         answer, latency = self.llm.chat(prompt)
         #返回给响应体
         sources = [
@@ -60,6 +71,6 @@ class ChatService:
                 "content": chunk.content,
                 "distance": distance,
             }
-            for chunk, distance in chunk_results
+            for chunk, distance in relevant_results
         ]
         return answer, latency, sources
