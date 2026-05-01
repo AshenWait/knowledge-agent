@@ -1,12 +1,16 @@
 from sqlalchemy.orm import Session
+
 from app.models.chat import ChatSession, ChatMessage
-import time
+from app.services.document import DocumentService
+from app.services.embedding import EmbeddingService
 from app.services.llm import LLMService
 
 class ChatService:
     def __init__(self, db:Session):
         self.db = db
         self.llm = LLMService()
+        self.embedding = EmbeddingService()
+        self.document_service = DocumentService(db)
     
     def create_session(self, title:str) -> ChatSession:
         """创建新的聊天会话"""
@@ -25,5 +29,23 @@ class ChatService:
         return message
 
     def chat(self, user_message: str) -> tuple[str, float]:
-        answer, latency = self.llm.chat(user_message)    
+        query_embedding = self.embedding.embed_text(user_message)
+        chunks = self.document_service.search_similar_chunks(query_embedding, limit=3)
+        context = "\n\n".join(
+            f"资料{index+1}:\n{chunk.content}"
+            for index, chunk in enumerate(chunks)
+        )
+        prompt = f"""
+你是 Knowledge Agent，请根据下面的资料回答用户问题。
+
+如果资料里没有答案，请回答：我在已上传文档里没有找到足够信息。
+
+资料：
+{context}
+
+用户问题：
+{user_message}
+"""
+
+        answer, latency = self.llm.chat(prompt)    
         return answer, latency
