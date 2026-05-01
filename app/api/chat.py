@@ -30,7 +30,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
 
     service = ChatService(db)#创建业务对象
     chat_session = service.create_session("Chat from API")#创建一条聊天会话
-    answer, latency, sources = service.chat(request.message)#调用 LLM 得到回答、耗时、切片数据
+    answer, latency, sources = service.chat(request.message, request.document_id)#调用 LLM 得到回答、耗时、切片数据
     user_message = service.add_message(chat_session.id,"user", request.message)#保存用户消息
     assistant_message = service.add_message(chat_session.id, "assistant", answer)#保存模型回答
 

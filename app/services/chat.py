@@ -31,14 +31,19 @@ class ChatService:
         self.db.refresh(message)
         return message
 
-    def chat(self, user_message: str) -> tuple[str, float, list[dict[str, int | str | float]]]:
+    def chat(
+        self,
+        user_message: str,
+        document_id: int | None = None,
+    ) -> tuple[str, float, list[dict[str, int | str | float]]]:
         query_embedding = self.embedding.embed_text(user_message)   #问题转向量
         # 相似度搜索返回 [(chunk1, 0.12), (chunk2, 0.35)]，distance 越小越相关
         chunk_results = self.document_service.search_similar_chunks(
             query_embedding,
             limit=settings.rag_top_k,
+            document_id=document_id,
         )
-        #过滤不相关chunks
+        #排除阈值外的
         relevant_results = [
             (chunk, distance)
             for chunk, distance in chunk_results

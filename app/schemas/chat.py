@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class ChatRequest(BaseModel):
     """请求体结构"""
     message: str
+    document_id: int | None = None
 
 
 class ChatSource(BaseModel):

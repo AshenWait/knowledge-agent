@@ -52,16 +52,20 @@ class DocumentService:
             self.db.refresh(chunk)
         return chunk_objects
 
-    def search_similar_chunks(self, query_embedding: list[float], limit: int = 3) -> list[tuple[Chunk, float]]:
+    def search_similar_chunks(
+        self,
+        query_embedding: list[float],
+        limit: int = 3,
+        document_id: int | None = None,
+    ) -> list[tuple[Chunk, float]]:
         """向量相似度搜索，返回 chunk 和距离"""
         distance = Chunk.embedding.cosine_distance(query_embedding).label("distance")
-        statement =(
-            select(Chunk, distance)
-            .where(Chunk.embedding.is_not(None))
-            .order_by(distance)
-            .limit(limit) #相似度3条
-        )
-        
+        statement = select(Chunk, distance).where(Chunk.embedding.is_not(None))
+
+        if document_id is not None:
+            statement = statement.where(Chunk.document_id == document_id)
+
+        statement = statement.order_by(distance).limit(limit)
         rows = self.db.execute(statement).all()
         return [(chunk, float(score)) for chunk, score in rows]
 
