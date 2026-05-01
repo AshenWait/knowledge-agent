@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.chat import ChatRequest, ChatResponse
@@ -29,6 +29,12 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     """
 
     service = ChatService(db)#创建业务对象
+    #先去数据库用这个ID获取内容，为空则返回404
+    if request.document_id is not None:
+        document = service.document_service.get_document(request.document_id)
+        if document is None:
+            raise HTTPException(status_code=404, detail="文档不存在")
+
     chat_session = service.create_session("Chat from API")#创建一条聊天会话
     answer, latency, sources = service.chat(request.message, request.document_id)#调用 LLM 得到回答、耗时、切片数据
     user_message = service.add_message(chat_session.id,"user", request.message)#保存用户消息
