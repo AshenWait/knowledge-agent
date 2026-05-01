@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.chat import ChatSession, ChatMessage
 from app.services.document import DocumentService
 from app.services.embedding import EmbeddingService
 from app.services.llm import LLMService
 
-MAX_RAG_DISTANCE = 0.8
 
 
 class ChatService:
@@ -34,12 +34,15 @@ class ChatService:
     def chat(self, user_message: str) -> tuple[str, float, list[dict[str, int | str | float]]]:
         query_embedding = self.embedding.embed_text(user_message)   #问题转向量
         # 相似度搜索返回 [(chunk1, 0.12), (chunk2, 0.35)]，distance 越小越相关
-        chunk_results = self.document_service.search_similar_chunks(query_embedding, limit=3)
+        chunk_results = self.document_service.search_similar_chunks(
+            query_embedding,
+            limit=settings.rag_top_k,
+        )
         #过滤不相关chunks
         relevant_results = [
             (chunk, distance)
             for chunk, distance in chunk_results
-            if distance <= MAX_RAG_DISTANCE
+            if distance <= settings.max_rag_distance
         ]
         if not relevant_results:
             return "我在已上传文档里没有找到足够信息。", 0.0, []
