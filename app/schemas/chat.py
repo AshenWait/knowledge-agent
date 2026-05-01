@@ -5,6 +5,7 @@ class ChatRequest(BaseModel):
     """请求体结构"""
     message: str
     document_id: int | None = None
+    session_id: int | None = None
 
 
 class ChatSource(BaseModel):
@@ -24,4 +25,3 @@ class ChatResponse(BaseModel):
     assistant_message_id: int
     latency_ms: int
     sources: list[ChatSource]
-

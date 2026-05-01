@@ -31,6 +31,11 @@ class ChatService:
         self.db.refresh(message)
         return message
 
+    def get_session(self, session_id: int) -> ChatSession | None:
+        """根据 id 获取聊天会话"""
+        #从数据库中查询 ChatSession表，找到 id = session_id的那一条记录，并返回它（如果没有则返回 None）
+        return self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
+
     def chat(
         self,
         user_message: str,
