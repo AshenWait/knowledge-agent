@@ -92,6 +92,22 @@ def list_documents(db: Session = Depends(get_db)) -> list[dict]:
         for doc in documents
     ]
 
+@router.get("/search")
+def search_documents(query: str, limit: int = 3, db: Session = Depends(get_db)):
+    embedding_service = EmbeddingService()
+    query_embedding = embedding_service.embed_text(query)
+    service = DocumentService(db)
+    chunks = service.search_similar_chunks(query_embedding, limit)
+
+    return [
+        {
+            "id": chunk.id,
+            "document_id": chunk.document_id,
+            "chunk_index": chunk.chunk_index,
+            "content": chunk.content,
+        }
+        for chunk in chunks
+    ]
 
 @router.get("/{document_id}", response_model=DocumentResponse)
 def get_document(document_id: int, db: Session = Depends(get_db)) -> dict:
@@ -144,3 +160,6 @@ def delete_document(
         "document_id": document_id,
         "message": "文档已删除",
     }
+
+
+
