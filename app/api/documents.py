@@ -8,6 +8,7 @@ from app.schemas.document import ChunkResponse, DocumentResponse
 from app.services.document import DocumentService
 from app.services.document_parser import parse_document
 from app.services.text_splitter import split_pages
+from app.services.embedding import EmbeddingService
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -35,10 +36,11 @@ def upload_document(
         raise HTTPException(status_code=400, detail="文件不能超过 10MB")
 
     file_path = UPLOAD_DIR / file.filename  # 拼接路径
-    file_path.write_bytes(content)  # 保存内容
+    file_path.write_bytes(content)  # 保存上传文件
 
+    #解析文件拿到列表数据[{页码：文本}]
     try:
-        pages = parse_document(str(file_path), file.filename)  # 解析文档，返回统一列表
+        pages = parse_document(str(file_path), file.filename)  # 解析文档，返回统一列表list[dict[str, int | str]]
     except Exception as exc:
         raise HTTPException(status_code=400, detail="文档解析失败，请检查文件是否损坏") from exc
 
@@ -46,7 +48,7 @@ def upload_document(
     if not has_text:
         raise HTTPException(status_code=400, detail="文档没有可解析文本，请检查文件内容")
 
-    service = DocumentService(db)
+    service = DocumentService(db)#用来操作数据库
 
     # 保存文档元数据到数据库
     document = service.create_document(
@@ -55,7 +57,13 @@ def upload_document(
         content_type=file.content_type or "",
         page_count=len(pages),
     )
-    chunks = split_pages(pages)
+    chunks = split_pages(pages) #[{页码，切片码，文本}]
+
+    embedding_service = EmbeddingService()  #初始化向量服务器
+    for chunk in chunks:
+        chunk["embedding"] = embedding_service.embed_text(str(chunk["content"])) #将文本转为向量赋值给embedding字段
+        chunk["embedding_model"] = embedding_service.model  #向量模型
+
     saved_chunks = service.create_chunks(document.id, chunks)
     return {
         "document_id": document.id,

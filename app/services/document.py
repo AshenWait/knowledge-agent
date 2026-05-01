@@ -40,6 +40,8 @@ class DocumentService:
                 content=str(chunk["content"]),
                 page_number=int(chunk["page_number"]),
                 chunk_index=int(chunk["chunk_index"]),
+                embedding=chunk.get("embedding"),
+                embedding_model=chunk.get("embedding_model"),
             )
             for chunk in chunks
         ]

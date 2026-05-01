@@ -1,4 +1,5 @@
 from datetime import datetime
+from pgvector.sqlalchemy import Vector
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column#mapped_column(...) 表示这个字段在数据库里怎么定义
@@ -27,4 +28,7 @@ class Chunk(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     page_number: Mapped[int] = mapped_column(Integer, default=0)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+

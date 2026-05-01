@@ -12,7 +12,9 @@ httptools==0.7.1
 httpx==0.28.1
 idna==3.13
 jiter==0.14.0
+numpy==2.4.4
 openai==2.32.0
+pgvector==0.4.2
 psycopg==3.3.3
 psycopg-binary==3.3.3
 pydantic==2.13.3
