@@ -28,9 +28,10 @@ class ChatService:
         self.db.refresh(message)
         return message
 
-    def chat(self, user_message: str) -> tuple[str, float]:
+    def chat(self, user_message: str) -> tuple[str, float, list[dict[str, int | str]]]:
         query_embedding = self.embedding.embed_text(user_message)
         chunks = self.document_service.search_similar_chunks(query_embedding, limit=3)
+
         context = "\n\n".join(
             f"资料{index+1}:\n{chunk.content}"
             for index, chunk in enumerate(chunks)
@@ -47,5 +48,14 @@ class ChatService:
 {user_message}
 """
 
-        answer, latency = self.llm.chat(prompt)    
-        return answer, latency
+        answer, latency = self.llm.chat(prompt)
+        sources = [
+            {
+                "chunk_id": chunk.id,
+                "document_id": chunk.document_id,
+                "chunk_index": chunk.chunk_index,
+                "content": chunk.content,
+            }
+            for chunk in chunks
+        ]
+        return answer, latency, sources
