@@ -10,8 +10,9 @@ from app.models.base import Base
 
 #表模板
 class Document(Base):
-    __tablename__ = "documents"#Document 这个 Python 类对应数据库里的 documents 表
+    """文档表，保存上传文件的元数据。"""
 
+    __tablename__ = "documents"#Document 这个 Python 类对应数据库里的 documents 表
     id: Mapped[int] = mapped_column(primary_key=True, index=True)#primary_key=True这是主键/index=True给这个字段建索引，查询更快
     filename: Mapped[str] = mapped_column(String(255), nullable=False)#nullable=False   不能为空
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)#保存路径
@@ -21,8 +22,9 @@ class Document(Base):
 
 
 class Chunk(Base):
-    __tablename__ = "chunks"
+    """文档切片表，保存 chunk 原文、页码、向量和向量模型。"""
 
+    __tablename__ = "chunks"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), nullable=False)#这是外键，表示这个 chunk 属于哪篇文档
     content: Mapped[str] = mapped_column(Text, nullable=False)

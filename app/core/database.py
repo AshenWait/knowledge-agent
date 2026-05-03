@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 engine = create_engine(settings.database_url, echo=False)#拿到数据库信息
 
-#创建会话工厂db = SessionLocal()然后通过 db 查询、插入、提交数据
+
 """_summary_
 
 autoflush=False
@@ -18,6 +18,7 @@ autoflush=False
 autocommit=False
 表示不要自动提交事务，后面要手动
 """
+#创建会话工厂db = SessionLocal()然后通过 db 查询、插入、提交数据
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
@@ -31,11 +32,13 @@ finally:
     connection.close()  # 3. 无论是否出错，都关闭连接
 """
 def check_database_connection() -> bool:
+    """执行一条最小 SQL，确认数据库连接可用。"""
     with engine.connect() as connection:
         result = connection.execute(text("SELECT 1"))
         return result.scalar_one() == 1
     
 def get_db() -> Generator[Session, None, None]:
+    """为每个请求提供数据库 Session，并在请求结束后关闭连接。"""
     db = SessionLocal()
     try:
         yield db

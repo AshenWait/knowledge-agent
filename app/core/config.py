@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """项目配置对象，从 .env 读取数据库、模型和 RAG 参数。"""
+
     app_name: str = "Knowledge Agent"
     app_version: str = "0.1.0"
     environment: str = "local"

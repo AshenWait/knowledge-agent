@@ -1,6 +1,7 @@
 
 #切割纯文本
 def split_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
+    """把一段文本按固定长度切成 chunks，并保留指定 overlap。"""
     if chunk_size <= 0:
         raise ValueError("chunk_size 必须大于 0")
 
@@ -37,6 +38,7 @@ def split_pages(
     chunk_size: int = 500,
     overlap: int = 50,
 ) -> list[dict[str, int | str]]:
+    """把多页解析结果切成带 page_number 和 chunk_index 的 chunks。"""
     chunks: list[dict[str, int | str]] = []
     chunk_index = 0
 

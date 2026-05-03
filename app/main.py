@@ -14,9 +14,9 @@ app.include_router(document_router)
 
 @app.get("/")
 def root() -> dict[str, str]:
+    """返回 API 首页信息，提示文档地址和健康检查地址。"""
     return {
         "message": "Knowledge Agent API is running.",
         "docs": "/docs",
         "health": "/health",
     }
-

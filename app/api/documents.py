@@ -22,6 +22,7 @@ def upload_document(
     file: UploadFile,
     db: Session = Depends(get_db),  # 每次处理上传请求时，自动帮我们创建一个数据库 Session，传给 db
 ) -> dict[str, str | int | None]:
+    """上传文档，完成文件校验、解析、切分、生成向量，并保存文档与 chunk。"""
     # 类型检验/限制大小
     suffix = Path(file.filename).suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
@@ -77,6 +78,7 @@ def upload_document(
 
 @router.get("", response_model=list[DocumentResponse])
 def list_documents(db: Session = Depends(get_db)) -> list[dict]:
+    """返回所有已上传文档的元数据列表。"""
     service = DocumentService(db)
     documents = service.list_documents()
 
@@ -99,6 +101,11 @@ def search_documents(
     document_id: int | None = None,
     db: Session = Depends(get_db),
 ):
+    """接收搜索文本，生成查询向量，并返回最相似的文档 chunk。"""
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="搜索内容不能为空")
+    if limit < 1 or limit > 10:
+        raise HTTPException(status_code=400, detail="limit 必须在 1 到 10 之间")
     embedding_service = EmbeddingService()
     query_embedding = embedding_service.embed_text(query)
     service = DocumentService(db)
@@ -122,6 +129,7 @@ def search_documents(
 
 @router.get("/{document_id}", response_model=DocumentResponse)
 def get_document(document_id: int, db: Session = Depends(get_db)) -> dict:
+    """根据文档 id 返回单个文档的元数据。"""
     service = DocumentService(db)
     document = service.get_document(document_id)
     if document is None:
@@ -139,6 +147,7 @@ def get_document(document_id: int, db: Session = Depends(get_db)) -> dict:
 
 @router.get("/{document_id}/chunks", response_model=list[ChunkResponse])
 def list_document_chunks(document_id: int, db: Session = Depends(get_db)) -> list[dict]:
+    """返回指定文档下的所有 chunk。"""
     service = DocumentService(db)
     document = service.get_document(document_id)
     if document is None:
@@ -163,6 +172,7 @@ def delete_document(
     document_id: int,
     db: Session = Depends(get_db),
 ) -> dict[str, int | str]:
+    """根据文档 id 删除文档记录以及它关联的 chunks。"""
     service = DocumentService(db)
     deleted = service.delete_document(document_id)
     if not deleted:
@@ -171,4 +181,3 @@ def delete_document(
         "document_id": document_id,
         "message": "文档已删除",
     }
-
