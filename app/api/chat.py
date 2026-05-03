@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.chat import (
     ChatMessageResponse,
@@ -35,6 +37,11 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     #拦截空消息
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="消息不能为空")
+    if len(request.message) > settings.max_chat_message_length:
+        raise HTTPException(
+            status_code=400,
+            detail=f"消息不能超过 {settings.max_chat_message_length} 字",
+        )
 
     service = ChatService(db)#创建业务对象
     #根据 id获取文档
