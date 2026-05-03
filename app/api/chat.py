@@ -41,7 +41,8 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             raise HTTPException(status_code=404, detail="文档不存在")
     #是否选定某会话
     if request.session_id is None:
-        chat_session = service.create_session("Chat from API")#创建一条聊天会话
+        title = service.build_session_title(request.message)
+        chat_session = service.create_session(title)#创建一条聊天会话
     else:
         chat_session = service.get_session(request.session_id)
         if chat_session is None:

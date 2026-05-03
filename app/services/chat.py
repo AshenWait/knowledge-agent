@@ -15,6 +15,15 @@ class ChatService:
         self.embedding = EmbeddingService()
         self.document_service = DocumentService(db)
     
+    def build_session_title(self, message: str, max_length: int = 30) -> str:
+        """根据用户第一句话生成会话标题"""
+        title = message.strip().replace("\n", " ")
+        if not title:
+            return "New Chat"
+        if len(title) > max_length:
+            return title[:max_length] + "..."
+        return title
+
     def create_session(self, title:str) -> ChatSession:
         """创建新的聊天会话"""
         session = ChatSession(title=title)
