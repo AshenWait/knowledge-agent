@@ -73,3 +73,15 @@ def list_chat_messages(session_id: int, db: Session = Depends(get_db)) -> list:
         raise HTTPException(status_code=404, detail="聊天会话不存在")
 
     return service.list_messages(session_id)
+
+@router.delete("/chat/sessions/{session_id}")
+def delete_chat_session(session_id: int, db: Session = Depends(get_db)) -> dict[str, int | str]:
+    service = ChatService(db)
+    deleted = service.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="聊天会话不存在")
+
+    return {
+        "session_id": session_id,
+        "message": "聊天会话已删除",
+    }

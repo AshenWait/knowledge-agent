@@ -58,6 +58,17 @@ class ChatService:
             .all()
         )
 
+    def delete_session(self, session_id: int) -> bool:
+        """删除聊天会话和它下面的所有消息"""
+        chat_session = self.get_session(session_id)
+        if chat_session is None:
+            return False
+
+        self.db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
+        self.db.delete(chat_session)
+        self.db.commit()
+        return True
+
     def chat(
         self,
         user_message: str,
