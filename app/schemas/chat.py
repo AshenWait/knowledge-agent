@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -25,3 +27,19 @@ class ChatResponse(BaseModel):
     assistant_message_id: int
     latency_ms: int
     sources: list[ChatSource]
+
+
+class ChatSessionResponse(BaseModel):
+    """响应会话"""
+    id: int
+    title: str
+    created_at: datetime
+
+
+class ChatMessageResponse(BaseModel):
+    """响应会话消息"""
+    id: int
+    session_id: int
+    role: str
+    content: str
+    created_at: datetime

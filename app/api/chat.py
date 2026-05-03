@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import (
+    ChatMessageResponse,
+    ChatRequest,
+    ChatResponse,
+    ChatSessionResponse,
+)
 from app.services.chat import ChatService
 
 #前台接待员”：收请求、校验格式、调用 service
@@ -53,3 +58,17 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         latency_ms=int(latency * 1000),
         sources=sources,
     )
+
+@router.get("/chat/sessions", response_model=list[ChatSessionResponse])
+def list_chat_sessions(db: Session = Depends(get_db)) -> list:
+    service = ChatService(db)
+    return service.list_sessions()
+
+@router.get("/chat/sessions/{session_id}/messages", response_model=list[ChatMessageResponse])
+def list_chat_messages(session_id: int, db: Session = Depends(get_db)) -> list:
+    service = ChatService(db)
+    chat_session = service.get_session(session_id)
+    if chat_session is None:
+        raise HTTPException(status_code=404, detail="聊天会话不存在")
+
+    return service.list_messages(session_id)

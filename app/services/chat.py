@@ -36,6 +36,19 @@ class ChatService:
         #从数据库中查询 ChatSession表，找到 id = session_id的那一条记录，并返回它（如果没有则返回 None）
         return self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
 
+    def list_sessions(self) -> list[ChatSession]:
+        """获取所有聊天会话"""
+        return self.db.query(ChatSession).order_by(ChatSession.id.desc()).all()
+
+    def list_messages(self, session_id: int) -> list[ChatMessage]:
+        """获取某个聊天会话下的所有消息"""
+        return (
+            self.db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session_id)
+            .order_by(ChatMessage.id)
+            .all()
+        )
+
     def chat(
         self,
         user_message: str,
