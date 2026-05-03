@@ -32,6 +32,9 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     Returns:
         ChatResponse: _description_
     """
+    #拦截空消息
+    if not request.message.strip():
+        raise HTTPException(status_code=400, detail="消息不能为空")
 
     service = ChatService(db)#创建业务对象
     #根据 id获取文档
