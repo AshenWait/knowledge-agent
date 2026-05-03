@@ -69,10 +69,22 @@ class ChatService:
         self.db.commit()
         return True
 
+    def list_recent_messages(self, session_id: int, limit: int = 6) -> list[ChatMessage]:
+        """获取某个会话最近几条消息"""
+        messages = (
+            self.db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session_id)
+            .order_by(ChatMessage.id.desc())
+            .limit(limit)
+            .all()
+        )
+        return list(reversed(messages))
+
     def chat(
         self,
         user_message: str,
         document_id: int | None = None,
+        session_id: int | None = None,
     ) -> tuple[str, float, list[dict[str, int | str | float]]]:
         query_embedding = self.embedding.embed_text(user_message)   #问题转向量
         # 相似度搜索返回 [(chunk1, 0.12), (chunk2, 0.35)]，distance 越小越相关
@@ -95,10 +107,23 @@ class ChatService:
             f"资料{index+1}:\n{chunk.content}"
             for index, (chunk, distance) in enumerate(relevant_results)
         )
+        history_text = ""
+        if session_id is not None:
+            recent_messages = self.list_recent_messages(
+                session_id,
+                limit=settings.chat_history_limit,
+            )
+            history_text = "\n".join(
+                f"{message.role}: {message.content}"
+                for message in recent_messages
+            )
         prompt = f"""
-你是 Knowledge Agent，请根据下面的资料回答用户问题。
+你是 Knowledge Agent，请根据下面的资料和聊天历史回答用户问题。
 
 如果资料里没有答案，请回答：我在已上传文档里没有找到足够信息。
+
+聊天历史：
+{history_text}
 
 资料：
 {context}

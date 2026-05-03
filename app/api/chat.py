@@ -34,7 +34,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
     """
 
     service = ChatService(db)#创建业务对象
-    #先去数据库用这个ID获取内容，为空则返回404
+    #根据 id获取文档
     if request.document_id is not None:
         document = service.document_service.get_document(request.document_id)
         if document is None:
@@ -47,7 +47,11 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         chat_session = service.get_session(request.session_id)
         if chat_session is None:
             raise HTTPException(status_code=404, detail="聊天会话不存在")
-    answer, latency, sources = service.chat(request.message, request.document_id)#调用 LLM 得到回答、耗时、切片数据
+    answer, latency, sources = service.chat(
+        request.message,
+        request.document_id,
+        session_id=chat_session.id,
+    )#调用 LLM 得到回答、耗时、切片数据
     user_message = service.add_message(chat_session.id,"user", request.message)#保存用户消息
     assistant_message = service.add_message(chat_session.id, "assistant", answer)#保存模型回答
 
