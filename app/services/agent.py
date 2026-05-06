@@ -2,7 +2,12 @@ import re
 from typing import Any
 
 from sqlalchemy.orm import Session
-
+from pydantic import ValidationError
+from app.schemas.tool import (
+    ListDocumentsInput,
+    RetrieveDocumentsInput,
+    SummarizeDocumentInput,
+)
 from app.services.tools import (
     list_documents,
     retrieve_documents,
@@ -38,11 +43,34 @@ class AgentService:
 
             try:
                 tool_result = self._run_tool(tool_name, tool_input)
+            except ValidationError as exc:
+                validation_log = {
+                    "tool_name": tool_name,
+                    "tool_input": tool_input,
+                    "status": "validation_failed",
+                    "error": str(exc),
+                }
+                tool_calls.append(validation_log)
+
+                return {
+                    "answer": f"工具参数校验失败：{exc}",
+                    "tool_calls": tool_calls,
+                }
             except Exception as exc:
+                tool_calls.append(
+                    {
+                        "tool_name": tool_name,
+                        "tool_input": tool_input,
+                        "status": "failed",
+                        "error": str(exc),
+                    }
+                )
+
                 return {
                     "answer": f"工具调用失败：{exc}",
                     "tool_calls": tool_calls,
                 }
+
 
             tool_calls.append(
                 {
@@ -80,20 +108,23 @@ class AgentService:
 
     def _run_tool(self, tool_name: str, tool_input: dict[str, Any]) -> Any:
         if tool_name == "list_documents":
+            ListDocumentsInput.model_validate(tool_input)
             return list_documents(self.db)
 
         if tool_name == "retrieve_documents":
+            validated_input = RetrieveDocumentsInput.model_validate(tool_input)
             return retrieve_documents(
                 self.db,
-                query=tool_input["query"],
-                limit=tool_input.get("limit", 3),
+                query=validated_input.query,
+                limit=validated_input.limit,
             )
 
         if tool_name == "summarize_document":
-            document_id = tool_input.get("document_id")
-            if document_id is None:
-                raise ValueError("请提供要总结的文档 id")
-            return summarize_document(self.db, document_id=document_id)
+            validated_input = SummarizeDocumentInput.model_validate(tool_input)
+            return summarize_document(
+                self.db,
+                document_id=validated_input.document_id,
+            )
 
         raise ValueError(f"未知工具：{tool_name}")
 
