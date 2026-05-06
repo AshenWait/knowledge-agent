@@ -32,7 +32,6 @@
 - 流式输出：`POST /api/chat/stream` 支持逐步返回模型回答。
 - RAG 调用日志：保存每次问题、回答、耗时和检索到的 chunks，并支持按会话查询。
 - 前端工作台：支持上传文档、查看文档列表、提问、展示回答和引用来源。
-- Tool calling：支持 Agent 先判断是否调用 `retrieve_documents(query)` 检索工具。
 
 ## 前端截图
 
@@ -364,38 +363,6 @@ curl.exe -N -X POST "http://127.0.0.1:8000/api/chat/stream" `
 
 普通聊天接口返回完整 JSON；流式接口当前返回 `text/plain` 文本流，并在流结束后保存完整助手回答。
 
-### Agent 工具调用接口
-
-`POST /api/agent/chat` 用于观察 Agent 是否会先调用工具，再生成回答。
-
-当前第一个工具是：
-
-| 工具 | 作用 | 类型 |
-| --- | --- | --- |
-| `retrieve_documents(query)` | 根据问题检索相关文档 chunks，并返回引用来源 | 只读工具 |
-
-一次 Agent 请求的流程：
-
-```txt
-POST /api/agent/chat
-  -> app/api/agent.py 的 agent_chat()
-  -> app/services/agent.py 的 AgentService 让模型判断是否需要工具
-  -> 如果需要资料，调用 app/services/agent_tools.py 的 retrieve_documents()
-  -> 根据工具返回的 chunks 生成最终回答
-  -> 返回 reply、tool_called、tool_input、sources
-```
-
-请求示例：
-
-```json
-{
-  "message": "这个文档是做什么用的？",
-  "document_id": 1
-}
-```
-
-响应里的 `tool_called` 可以看到本轮是否调用了 `retrieve_documents`。
-
 ### 聊天历史和 RAG 日志接口
 
 | 接口 | 作用 |
@@ -467,5 +434,4 @@ RAG 调用日志会保存：
 - [x] Day 33：前端展示引用来源和 chunk 原文
 - [x] Day 34：前端增加 loading、错误提示和清空输入
 - [x] Day 35：前后端联调、README 截图和 GitHub 推送
-- [x] Day 36：学习 tool calling，定义 `retrieve_documents(query)` 工具
-- [ ] Day 37：定义 `summarize_document(document_id)` 工具
+- [ ] Day 36：学习 tool calling，定义 `retrieve_documents(query)` 工具

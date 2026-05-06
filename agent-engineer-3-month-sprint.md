@@ -313,9 +313,9 @@
 
 ### Day 36
 
-- [x] 学 tool calling 基本概念。
-- [x] 定义工具：`retrieve_documents(query)`。
-- [x] 让模型决定是否调用检索工具。
+- [ ] 学 tool calling 基本概念。
+- [ ] 定义工具：`retrieve_documents(query)`。
+- [ ] 让模型决定是否调用检索工具。
 
 ### Day 37
 
