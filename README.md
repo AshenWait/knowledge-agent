@@ -31,6 +31,11 @@
 - 聊天历史：支持会话列表、消息历史、继续已有会话和删除会话。
 - 流式输出：`POST /api/chat/stream` 支持逐步返回模型回答。
 - RAG 调用日志：保存每次问题、回答、耗时和检索到的 chunks，并支持按会话查询。
+- 前端工作台：支持上传文档、查看文档列表、提问、展示回答和引用来源。
+
+## 前端截图
+
+![Knowledge Agent 前端工作台](docs/screenshots/frontend-workbench.png)
 
 ## 技术栈
 
@@ -95,6 +100,20 @@ python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 docker start knowledge-agent-pgvector
 docker ps --filter "name=knowledge-agent-pgvector"
+```
+
+启动前端：
+
+```powershell
+cd frontend
+npm install
+npm run dev -- --host 127.0.0.1 --port 5174
+```
+
+前端开在：
+
+```
+http://127.0.0.1:5174/
 ```
 
 启动后访问：
@@ -407,4 +426,12 @@ RAG 调用日志会保存：
 - [x] Day 25：增加拒答逻辑
 - [x] Day 26：实现流式输出
 - [x] Day 27：记录并查询 RAG 调用日志
-- [ ] Day 28：整理 README、准备 demo、推送 GitHub
+- [x] Day 28：整理 README、准备 demo、推送 GitHub
+- [x] Day 29：搭建前端工作台
+- [x] Day 30：前端接入文档上传接口
+- [x] Day 31：前端展示文档列表和空状态
+- [x] Day 32：前端接入问答接口
+- [x] Day 33：前端展示引用来源和 chunk 原文
+- [x] Day 34：前端增加 loading、错误提示和清空输入
+- [x] Day 35：前后端联调、README 截图和 GitHub 推送
+- [ ] Day 36：学习 tool calling，定义 `retrieve_documents(query)` 工具
