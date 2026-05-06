@@ -188,6 +188,6 @@ agent-engineer-3-month-sprint.md
 - Day 3：Pydantic 请求响应模型
 - Day 4：PostgreSQL 连接和基础表设计
 - Day 5 ~ Day 35：后端 RAG、文档上传、pgvector 检索、引用来源、前端最小可用
-- 下一步：Day 36，进入 Tool Calling 和 Agent 化
+- 下一步：Day 37，定义 `summarize_document(document_id)` 工具
 
 每次继续学习前，先确认当前 Day，不要跳太快。
