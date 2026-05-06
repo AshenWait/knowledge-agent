@@ -331,9 +331,9 @@
 
 ### Day 39
 
-- [ ] 定义工具：`create_note(title, content, source_ids)`。
-- [ ] 保存笔记到 PostgreSQL。
-- [ ] 笔记保留来源 chunk。
+- [x] 定义工具：`create_note(title, content, source_ids)`。
+- [x] 保存笔记到 PostgreSQL。
+- [x] 笔记保留来源 chunk。
 
 ### Day 40
 

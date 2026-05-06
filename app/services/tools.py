@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 
+from app.models.document import Chunk
+from app.models.note import Note
 from app.services.document import DocumentService
 from app.services.embedding import EmbeddingService
 from app.services.llm import LLMService
@@ -109,3 +111,46 @@ def list_documents(db: Session) -> list[dict]:
         }
         for document in documents
     ]
+
+
+def create_note(
+    db: Session,
+    title: str,
+    content: str,
+    source_ids: list[int],
+) -> dict:
+    """创建笔记，并保留来源 chunk id。"""
+    clean_title = title.strip()
+    clean_content = content.strip()
+
+    if not clean_title:
+        raise ValueError("笔记标题不能为空")
+    if not clean_content:
+        raise ValueError("笔记内容不能为空")
+    if not source_ids:
+        raise ValueError("笔记必须保留至少一个来源 chunk")
+
+    chunks = db.query(Chunk).filter(Chunk.id.in_(source_ids)).all()
+    found_chunk_ids = {chunk.id for chunk in chunks}
+    missing_ids = [chunk_id for chunk_id in source_ids if chunk_id not in found_chunk_ids]
+
+    if missing_ids:
+        raise ValueError(f"来源 chunk 不存在：{missing_ids}")
+
+    note = Note(
+        title=clean_title,
+        content=clean_content,
+        source_chunk_ids=source_ids,
+    )
+
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
+    return {
+        "note_id": note.id,
+        "title": note.title,
+        "content": note.content,
+        "source_chunk_ids": note.source_chunk_ids,
+        "created_at": note.created_at.isoformat() if note.created_at else None,
+    }
