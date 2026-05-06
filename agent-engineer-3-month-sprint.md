@@ -313,15 +313,15 @@
 
 ### Day 36
 
-- [ ] 学 tool calling 基本概念。
-- [ ] 定义工具：`retrieve_documents(query)`。
-- [ ] 让模型决定是否调用检索工具。
+- [x] 学 tool calling 基本概念。
+- [x] 定义工具：`retrieve_documents(query)`。
+- [x] 让模型决定是否调用检索工具。
 
 ### Day 37
 
-- [ ] 定义工具：`summarize_document(document_id)`。
-- [ ] 支持总结某篇文档。
-- [ ] 总结结果带引用。
+- [x] 定义工具：`summarize_document(document_id)`。
+- [x] 支持总结某篇文档。
+- [x] 总结结果带引用。
 
 ### Day 38
 
