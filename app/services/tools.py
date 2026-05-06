@@ -91,3 +91,21 @@ def summarize_document(
         "latency_ms": int(latency * 1000),
         "sources": sources,
     }
+
+def list_documents(db: Session) -> list[dict]:
+    """列出已上传文档，作为 Agent 的只读工具。"""
+    document_service = DocumentService(db)
+    documents = document_service.list_documents()
+
+    return [
+        {
+            "document_id": document.id,
+            "filename": document.filename,
+            "content_type": document.content_type,
+            "page_count": document.page_count,
+            "created_at": document.created_at.isoformat()
+            if document.created_at
+            else None,
+        }
+        for document in documents
+    ]
