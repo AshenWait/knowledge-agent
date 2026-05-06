@@ -380,6 +380,51 @@ RAG 调用日志会保存：
 - 当时检索到的 chunks `retrieved_chunks`
 - 每个 chunk 的文档名、页码、片段内容和相似度距离
 
+## Agent 工具系统
+
+第 6 周开始，项目从固定 RAG 问答升级为 Agent 工具调用模式。
+
+当前 Agent 已支持这些工具：
+
+| 工具名 | 权限等级 | 作用 | 当前状态 |
+| --- | --- | --- | --- |
+| `list_documents()` | 只读工具 | 查询已上传文档列表 | 已实现 |
+| `retrieve_documents(query)` | 只读工具 | 根据用户问题检索相关 chunks | 已实现 |
+| `summarize_document(document_id)` | 只读工具 | 总结指定文档并返回引用来源 | 已实现 |
+| `create_note(title, content, source_ids)` | 写入工具 | 创建笔记并保留来源 chunk | 已实现，后续增加用户确认 |
+
+### 工具权限等级
+
+| 权限等级 | 含义 | 当前策略 |
+| --- | --- | --- |
+| 只读工具 | 只查询数据，不修改数据库 | 可以直接执行 |
+| 写入工具 | 会新增或修改数据 | 后续执行前需要用户确认 |
+| 危险工具 | 删除数据、执行系统命令、访问敏感资源 | 当前不开放 |
+
+当前项目暂不开放删除类 Agent 工具，也不允许 Agent 执行本地系统命令。
+
+### 当前 Agent Loop
+
+当前 `AgentService` 已经实现最小 agent loop：
+
+```txt
+用户输入
+  -> 判断需要哪个工具
+  -> 校验工具参数
+  -> 执行工具
+  -> 记录工具调用结果
+  -> 返回最终回答
+```
+
+当前版本先用规则判断工具：
+
+- 用户问“我上传了哪些文档”时，调用 `list_documents()`。
+- 用户问“总结文档 1”时，调用 `summarize_document(document_id=1)`。
+- 用户问和文档、资料、知识库相关的问题时，调用 `retrieve_documents(query)`。
+
+工具参数会先经过 Pydantic 校验。  
+如果参数错误，工具不会执行，并在 `tool_calls` 中记录 `validation_failed`。
+
 ## 2 分钟 RAG Demo 脚本
 
 1. 打开 Swagger：`http://127.0.0.1:8000/docs`。
@@ -434,4 +479,10 @@ RAG 调用日志会保存：
 - [x] Day 33：前端展示引用来源和 chunk 原文
 - [x] Day 34：前端增加 loading、错误提示和清空输入
 - [x] Day 35：前后端联调、README 截图和 GitHub 推送
-- [ ] Day 36：学习 tool calling，定义 `retrieve_documents(query)` 工具
+- [x] Day 36：学习 tool calling，定义 `retrieve_documents(query)` 工具
+- [x] Day 37：定义 `summarize_document(document_id)` 工具
+- [x] Day 38：定义 `list_documents()` 工具
+- [x] Day 39：定义 `create_note(title, content, source_ids)` 工具
+- [x] Day 40：手写简单 agent loop
+- [x] Day 41：给工具参数加 Pydantic 校验
+- [x] Day 42：README 增加 Agent 工具列表和权限等级

@@ -349,9 +349,9 @@
 
 ### Day 42
 
-- [ ] README 增加 Agent 工具列表。
-- [ ] 写清楚每个工具的权限等级。
-- [ ] 推送 GitHub。
+- [x] README 增加 Agent 工具列表。
+- [x] 写清楚每个工具的权限等级。
+- [x] 推送 GitHub。
 
 ## 第 7 周：权限确认和 Guardrails
 
