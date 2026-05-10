@@ -3,7 +3,8 @@ from app.services.tool_registry import ensure_tool_can_execute
 
 
 def main() -> None:
-    agent = AgentService(db=None)
+    agent = AgentService(db=None, session_type="note")
+
 
     try:
         agent._run_tool(
