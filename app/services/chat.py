@@ -6,6 +6,11 @@ from app.models.rag import RagCallLog
 from app.services.document import DocumentService
 from app.services.embedding import EmbeddingService
 from app.services.llm import LLMService
+from app.services.output_guardrails import (
+    build_output_refusal,
+    check_answer_output,
+    log_output_check,
+)
 
 
 
@@ -136,7 +141,10 @@ class ChatService:
             if distance <= settings.max_rag_distance
         ]
         if not relevant_results:
-            return "我在已上传文档里没有找到足够信息。", 0.0, []
+            answer = "我在已上传文档里没有找到足够信息。"
+            output_result = check_answer_output(answer, [])
+            log_output_check(self.db, user_message, answer, output_result)
+            return answer, 0.0, []
 
         #大模型只认文本，所以要把无关字段剔除
         context = "\n\n".join(
@@ -184,4 +192,11 @@ class ChatService:
                     "distance": distance,
                 }
             )
+
+        output_result = check_answer_output(answer, sources)
+        log_output_check(self.db, user_message, answer, output_result)
+
+        if not output_result.allowed:
+            return build_output_refusal(output_result), latency, []
+
         return answer, latency, sources
