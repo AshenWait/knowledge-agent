@@ -34,6 +34,10 @@ function App() {
   const [isAsking, setIsAsking] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [traceRunId, setTraceRunId] = useState('')
+  const [traceSteps, setTraceSteps] = useState([])
+  const [isLoadingTrace, setIsLoadingTrace] = useState(false)
+
 
   const selectedDocument = useMemo(
     () =>
@@ -103,6 +107,32 @@ function App() {
       setIsUploading(false)
     }
   }
+  //根据 run_id 调后端 trace API，把步骤加载到页面
+  async function loadTrace(runId) {
+    if (!runId.trim()) {
+      setError('请输入 run_id')
+      return
+    }
+
+    setIsLoadingTrace(true)
+    setError('')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/traces/${runId.trim()}`)
+      if (!response.ok) {
+        throw new Error(await readError(response))
+      }
+
+      const data = await response.json()
+      setTraceSteps(data)
+    } catch (err) {
+      setError(err.message)
+      setTraceSteps([])
+    } finally {
+      setIsLoadingTrace(false)
+    }
+  }
+
 
   async function handleAsk() {
     const trimmedQuestion = question.trim()
@@ -141,6 +171,10 @@ function App() {
       setAnswer(data.reply)
       setSources(data.sources)
       setSessionId(data.session_id)
+      setTraceRunId(data.run_id || '')
+      if (data.run_id) {
+        await loadTrace(data.run_id)
+      }
       setNotice(`回答完成，耗时 ${data.latency_ms} ms`)
     } catch (err) {
       setError(err.message)
@@ -310,6 +344,50 @@ function App() {
               ))
             )}
           </section>
+          <section className="trace-box" aria-label="Trace 步骤">
+            <div className="trace-header">
+              <div>
+                <h2>Trace 步骤</h2>
+                <p>查看本次请求每一步做了什么</p>
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => loadTrace(traceRunId)}
+                disabled={isLoadingTrace || !traceRunId}
+              >
+                {isLoadingTrace ? '加载中...' : '刷新 Trace'}
+              </button>
+            </div>
+
+            <label className="trace-run-input">
+              run_id
+              <input
+                value={traceRunId}
+                onChange={(event) => setTraceRunId(event.target.value)}
+                placeholder="回答后会自动填入 run_id"
+              />
+            </label>
+
+            {traceSteps.length === 0 ? (
+              <p className="empty-state">暂无 Trace 步骤。</p>
+            ) : (
+              <div className="trace-list">
+                {traceSteps.map((step) => (
+                  <details className="trace-card" key={step.id}>
+                    <summary>
+                      <span>Step {step.step}</span>
+                      <span>{step.status}</span>
+                    </summary>
+                    <p>工具：{step.tool_name || '模型或系统步骤'}</p>
+                    <p>耗时：{step.latency_ms.toFixed(2)} ms</p>
+                    <pre>{JSON.stringify({ input: step.input, output: step.output }, null, 2)}</pre>
+                  </details>
+                ))}
+              </div>
+            )}
+          </section>
+
         </section>
       </section>
     </main>

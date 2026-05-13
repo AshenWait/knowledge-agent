@@ -11,6 +11,7 @@ from app.services.output_guardrails import (
     check_answer_output,
     log_output_check,
 )
+from app.services.trace import TraceRecorder
 
 
 
@@ -21,7 +22,8 @@ class ChatService:
     def __init__(self, db:Session):
         """初始化聊天服务，并创建 LLM、Embedding 和文档服务实例。"""
         self.db = db
-        self.llm = LLMService()
+        self.trace_recorder = TraceRecorder(db)
+        self.llm = LLMService(trace_recorder=self.trace_recorder)
         self.embedding = EmbeddingService()
         self.document_service = DocumentService(db)
     
@@ -125,7 +127,7 @@ class ChatService:
         user_message: str,
         document_id: int | None = None,
         session_id: int | None = None,
-    ) -> tuple[str, float, list[dict[str, int | str | float]]]:
+    ) -> tuple[str, float, list[dict[str, int | str | float]], str]:
         """执行一次 RAG 问答，返回模型回答、耗时和引用来源。"""
         query_embedding = self.embedding.embed_text(user_message)   #问题转向量
         # 相似度搜索返回 [(chunk1, 0.12), (chunk2, 0.35)]，distance 越小越相关
@@ -144,7 +146,7 @@ class ChatService:
             answer = "我在已上传文档里没有找到足够信息。"
             output_result = check_answer_output(answer, [])
             log_output_check(self.db, user_message, answer, output_result)
-            return answer, 0.0, []
+            return answer, 0.0, [], self.trace_recorder.run_id
 
         #大模型只认文本，所以要把无关字段剔除
         context = "\n\n".join(
@@ -197,6 +199,7 @@ class ChatService:
         log_output_check(self.db, user_message, answer, output_result)
 
         if not output_result.allowed:
-            return build_output_refusal(output_result), latency, []
+            return build_output_refusal(output_result), latency, [], self.trace_recorder.run_id
 
-        return answer, latency, sources
+        return answer, latency, sources, self.trace_recorder.run_id
+

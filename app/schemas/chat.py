@@ -29,7 +29,7 @@ class ChatResponse(BaseModel):
     assistant_message_id: int
     latency_ms: int
     sources: list[ChatSource]
-
+    run_id: str | None = None
 
 class ChatSessionResponse(BaseModel):
     """聊天会话列表响应体。"""

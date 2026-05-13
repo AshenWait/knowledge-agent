@@ -51,7 +51,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         chat_session = service.get_session(request.session_id)
         if chat_session is None:
             raise HTTPException(status_code=404, detail="聊天会话不存在")
-    answer, latency, sources = service.chat(
+    answer, latency, sources, run_id = service.chat(
         request.message,
         request.document_id,
         session_id=chat_session.id,
@@ -75,6 +75,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         assistant_message_id=assistant_message.id,
         latency_ms=latency_ms,
         sources=sources,
+        run_id=run_id,
     )
 
 @router.post("/chat/stream")

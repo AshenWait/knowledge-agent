@@ -386,3 +386,86 @@ button.secondary:hover {
     min-width: 0;
   }
 }
+
+.trace-box {
+  margin-top: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 18px;
+  background: #fff;
+}
+
+.trace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.trace-header h2 {
+  margin-bottom: 4px;
+  font-size: 17px;
+}
+
+.trace-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.trace-run-input {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.trace-run-input input {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.trace-list {
+  display: grid;
+  gap: 10px;
+}
+
+.trace-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.trace-card summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.trace-card p {
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 13px;
+}
+
+.trace-card pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 12px 0 0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
