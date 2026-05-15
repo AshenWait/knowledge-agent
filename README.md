@@ -558,5 +558,5 @@ Trace 核心表是 `agent_traces`，主要字段如下：
 - [x] Day 52：记录工具调用参数、返回摘要和错误信息
 - [x] Day 53：前端展示 trace 步骤并隐藏过长原始参数
 - [x] Day 54：统计平均响应时间、失败率和平均工具调用次数
-- [ ] Day 55：练习 5 类错误场景排查
+- [x] Day 55：练习 5 类错误场景排查
 - [x] Day 56：README 增加 Observability 章节，补充 Trace 面板截图
