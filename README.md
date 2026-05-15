@@ -32,10 +32,14 @@
 - 流式输出：`POST /api/chat/stream` 支持逐步返回模型回答。
 - RAG 调用日志：保存每次问题、回答、耗时和检索到的 chunks，并支持按会话查询。
 - 前端工作台：支持上传文档、查看文档列表、提问、展示回答和引用来源。
+- Trace 追踪：`/api/chat` 返回 `run_id`，可按 `run_id` 查询模型和工具调用步骤。
+- 观测统计：`GET /api/traces/stats` 统计平均响应时间、失败率和平均工具调用次数。
 
 ## 前端截图
 
 ![Knowledge Agent 前端工作台](docs/screenshots/frontend-workbench.png)
+
+![Knowledge Agent Trace 面板](docs/screenshots/trace-panel.png)
 
 ## 技术栈
 
@@ -422,6 +426,63 @@ RAG 调用日志会保存：
   -> 真正执行工具
 ```
 
+## Observability 和 Trace
+
+第 8 周开始，项目增加了 Agent 运行追踪能力。它解决的问题是：当一次问答变慢、没有检索到资料、工具调用失败或模型返回异常时，不能只看最终回答，而要看到这次请求中每一步发生了什么。
+
+一次普通问答现在会多返回一个 `run_id`：
+
+```txt
+POST /api/chat
+  -> ChatService 创建 TraceRecorder
+  -> LLMService / AgentService 写入 trace step
+  -> ChatResponse 返回 answer、sources、run_id
+  -> 前端用 run_id 请求 GET /api/traces/{run_id}
+  -> Trace 面板展示每一步 input、output、latency_ms、status
+```
+
+Trace 核心表是 `agent_traces`，主要字段如下：
+
+| 字段 | 作用 |
+| --- | --- |
+| `run_id` | 一次完整请求的唯一编号，同一次请求的所有 step 共享它 |
+| `step` | 当前请求里的第几步 |
+| `tool_name` | 工具调用名称；模型或系统步骤为空 |
+| `input` | 当前步骤的输入摘要 |
+| `output` | 当前步骤的输出摘要或错误信息 |
+| `latency_ms` | 当前步骤耗时，单位毫秒 |
+| `status` | 当前步骤状态，例如 `success`、`failed`、`blocked` |
+
+当前提供 2 个 trace 查询接口：
+
+| 接口 | 作用 |
+| --- | --- |
+| `GET /api/traces/{run_id}` | 查看某一次请求的完整步骤 |
+| `GET /api/traces/stats` | 查看整体平均响应时间、失败率和平均工具调用次数 |
+
+排查问题时，推荐按这个顺序看：
+
+```txt
+1. 前端回答是否拿到了 run_id
+2. 用 run_id 查 /api/traces/{run_id}
+3. 看是否有 status = failed 或 blocked
+4. 看 output.error 是否有明确错误
+5. 看哪一步 latency_ms 最大
+6. 再决定是检索问题、工具问题、模型问题、引用问题还是性能问题
+```
+
+如果把一条数据代入流程，可以这样理解：
+
+```txt
+假设我是一条用户问题：“这个文档主要讲了什么？”
+
+我先从前端进入 POST /api/chat。
+后端给我分配一个 run_id。
+如果我触发了模型调用，LLMService 会记录模型、prompt 预览、token 和耗时。
+如果我触发了工具调用，AgentService 会记录工具名、参数、返回摘要和状态。
+最后前端拿 run_id 查询 trace，把我经历过的每一步展示出来。
+```
+
 ## 2 分钟 RAG Demo 脚本
 
 1. 打开 Swagger：`http://127.0.0.1:8000/docs`。
@@ -432,6 +493,8 @@ RAG 调用日志会保存：
 6. 用 `POST /api/chat` 提问：“这个文档是做什么用的？”，展示回答和 `sources` 引用来源。
 7. 用 `POST /api/chat/stream` 展示流式输出。
 8. 用 `GET /api/chat/sessions/{session_id}/rag-logs` 展示这次回答背后的检索资料、距离分数和耗时。
+9. 用回答里的 `run_id` 请求 `GET /api/traces/{run_id}`，展示模型和工具调用 trace。
+10. 用 `GET /api/traces/stats` 展示平均响应时间、失败率和平均工具调用次数。
 
 可以这样介绍项目：
 
@@ -490,3 +553,10 @@ RAG 调用日志会保存：
 - [x] Day 47：增加输出检查，无引用确定性回答会被拒答并记录
 - [x] Day 48：准备 20 条安全测试样例并记录通过结果
 - [x] Day 49：修复本周问题，README 增加 Guardrails 安全设计说明
+- [x] Day 50：设计 trace 数据结构，建立 `agent_traces` 表
+- [x] Day 51：记录模型调用的模型名、token、耗时和状态
+- [x] Day 52：记录工具调用参数、返回摘要和错误信息
+- [x] Day 53：前端展示 trace 步骤并隐藏过长原始参数
+- [x] Day 54：统计平均响应时间、失败率和平均工具调用次数
+- [ ] Day 55：练习 5 类错误场景排查
+- [x] Day 56：README 增加 Observability 章节，补充 Trace 面板截图

@@ -441,9 +441,9 @@
 
 ### Day 56
 
-- [ ] README 增加 observability 章节。
-- [ ] 截图展示 trace 面板。
-- [ ] 推送 GitHub。
+- [x] README 增加 observability 章节。
+- [x] 截图展示 trace 面板。
+- [x] 推送 GitHub。
 
 ## 第 9 周：评测集和检索优化
 
