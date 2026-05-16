@@ -10,6 +10,10 @@
 eval/questions.json
 -> eval/run_rag_eval.py
 -> eval/results.json
+-> eval/analyze_results.py
+-> eval/report.json
+-> eval/analyze_citations.py
+-> eval/citation_report.json
 -> eval/analyze_failures.py
 -> docs/week9-failure-analysis.md
 -> eval/compare_optimization.py
@@ -26,6 +30,30 @@ eval/questions.json
 | 引用完整率 | `eval/citation_report.json` | 成功回答是否带 sources |
 | 失败原因分类 | `eval/failure_analysis.json` | 把失败归类为切分、检索、prompt、幻觉、文档缺失 |
 | 参数前后对比 | `eval/optimization_report.json` | 比较同一批题在不同参数下的指标变化 |
+
+## Day 59：top-3 检索命中率
+
+`eval/analyze_results.py` 会检查每条评测结果的前 3 个 sources，判断标准文档和标准页码是否出现在里面。
+
+```txt
+标准来源：tests/fixtures/sample.txt 第 1 页
+实际 sources 前 3 条：sample.txt 第 1 页、sample.md 第 1 页、sample.pdf 第 1 页
+结果：top-3 命中
+```
+
+这个指标回答的是：系统有没有把正确资料检索回来。
+
+## Day 60：引用完整率
+
+`eval/analyze_citations.py` 会检查每条成功回答是否带 sources。
+
+```txt
+status = success
+sources = []
+结果：missing_sources
+```
+
+这个指标回答的是：最终回答是否可追溯。如果成功回答没有引用来源，就应该继续保留输出检查，必要时强化 prompt。
 
 ## Day 61：失败原因分类
 
@@ -86,6 +114,8 @@ python eval/compare_optimization.py
 -> eval/results.json
 命中或未命中
 -> eval/report.json
+引用完整率
+-> eval/citation_report.json
 失败原因
 -> eval/failure_analysis.json
 参数前后变化

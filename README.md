@@ -493,6 +493,8 @@ Trace 核心表是 `agent_traces`，主要字段如下：
 | --- | --- |
 | `eval/questions.json` | 30 条评测问题，包含标准答案、标准文件和来源页码 |
 | `eval/run_rag_eval.py` | 批量调用 `/api/chat`，保存每题回答、sources、run_id 和错误 |
+| `eval/analyze_results.py` | 计算 top-3 检索命中率，列出未命中的问题 |
+| `eval/analyze_citations.py` | 计算引用完整率，列出没有引用来源的回答 |
 | `eval/analyze_failures.py` | 把失败分成切分问题、检索问题、prompt 问题、模型幻觉、文档缺失 |
 | `eval/compare_optimization.py` | 对比参数调整前后的指标变化 |
 | `docs/week9-evaluation-report.md` | 评测流程、指标来源和面试表达 |
@@ -598,6 +600,8 @@ eval/optimization_report.json 记录参数前后对比
 - [x] Day 56：README 增加 Observability 章节，补充 Trace 面板截图
 - [x] Day 57：整理 30 条评测问题，标注标准答案和来源页码
 - [x] Day 58：实现批量评测脚本，调用 RAG 接口并保存结果
+- [x] Day 59：计算 top-3 检索命中率，统计未命中问题
+- [x] Day 60：计算引用完整率，统计没有引用的回答
 - [x] Day 61：统计失败原因，输出失败分析表
 - [x] Day 62：增加检索参数对比脚本，支持记录指标前后变化
 - [x] Day 63：README 增加评测报告，说明指标来源
