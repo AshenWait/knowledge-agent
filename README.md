@@ -483,6 +483,42 @@ Trace 核心表是 `agent_traces`，主要字段如下：
 最后前端拿 run_id 查询 trace，把我经历过的每一步展示出来。
 ```
 
+## RAG 评测报告
+
+第 9 周开始，项目增加离线评测流程。评测目标不是主观判断“回答看起来不错”，而是用固定题库和固定指标检查 RAG 是否真的命中正确资料。
+
+当前评测文件：
+
+| 文件 | 作用 |
+| --- | --- |
+| `eval/questions.json` | 30 条评测问题，包含标准答案、标准文件和来源页码 |
+| `eval/run_rag_eval.py` | 批量调用 `/api/chat`，保存每题回答、sources、run_id 和错误 |
+| `eval/analyze_failures.py` | 把失败分成切分问题、检索问题、prompt 问题、模型幻觉、文档缺失 |
+| `eval/compare_optimization.py` | 对比参数调整前后的指标变化 |
+| `docs/week9-evaluation-report.md` | 评测流程、指标来源和面试表达 |
+
+当前可调参数：
+
+| 参数 | 默认值 | 作用 |
+| --- | --- | --- |
+| `RAG_CHUNK_SIZE` | `500` | 文档切分时每个 chunk 的最大字符数 |
+| `RAG_CHUNK_OVERLAP` | `50` | 相邻 chunk 重叠字符数 |
+| `RAG_TOP_K` | `3` | 检索时取前几个相似 chunks |
+| `MAX_RAG_DISTANCE` | `0.8` | 过滤低相关 chunks 的距离阈值 |
+
+指标必须来自脚本输出：
+
+```txt
+eval/questions.json 固定问题和标准来源
+eval/results.json 保存模型实际回答和 sources
+eval/report.json 计算 top-3 检索命中率
+eval/citation_report.json 计算引用完整率
+eval/failure_analysis.json 统计失败原因
+eval/optimization_report.json 记录参数前后对比
+```
+
+一句话：评测指标不是拍脑袋，而是由同一批问题、同一套脚本和可追溯的结果文件计算出来。
+
 ## 2 分钟 RAG Demo 脚本
 
 1. 打开 Swagger：`http://127.0.0.1:8000/docs`。
@@ -562,3 +598,6 @@ Trace 核心表是 `agent_traces`，主要字段如下：
 - [x] Day 56：README 增加 Observability 章节，补充 Trace 面板截图
 - [x] Day 57：整理 30 条评测问题，标注标准答案和来源页码
 - [x] Day 58：实现批量评测脚本，调用 RAG 接口并保存结果
+- [x] Day 61：统计失败原因，输出失败分析表
+- [x] Day 62：增加检索参数对比脚本，支持记录指标前后变化
+- [x] Day 63：README 增加评测报告，说明指标来源
