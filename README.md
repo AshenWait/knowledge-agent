@@ -37,19 +37,29 @@ Knowledge Agent 解决的是：
 
 ## 当前已实现能力
 
-- 文档上传、解析、切分和 embedding 入库。
-- 基于 pgvector 的相似度检索。
-- 支持引用来源的 RAG 问答。
-- 检索不足时拒答，避免无来源回答。
-- 前端工作台支持上传文档、查看文档、提问和查看引用。
-- Agent 支持只读工具调用和受控写入工具。
-- Guardrails 支持输入注入检查、工具权限检查和输出引用检查。
-- Trace 面板支持按 run_id 查看一次问答的完整执行步骤。
-- 评测脚本支持统计检索命中、引用完整率和失败原因。
+- 文档上传：支持 PDF、txt、markdown，限制文件类型和 10MB 大小。
+- 文档解析：PDF 按页抽取文本，txt/markdown 统一为一页文本结构。
+- 文本切分：按 chunk size 和 overlap 切分，并保存页码和 chunk 顺序。
+- Embedding：使用 `text-embedding-v4` 生成向量。
+- 向量检索：使用 PostgreSQL + pgvector 做相似度搜索。
+- RAG 问答：用户问题 -> embedding -> 检索 chunks -> 拼接上下文 -> LLM 回答。
+- 引用来源：回答返回 `document_filename`、`page_number`、`chunk_id`、引用片段和 `distance`。
+- 拒答逻辑：检索距离超过阈值时返回“我在已上传文档里没有找到足够信息。”。
+- 聊天历史：支持会话列表、消息历史、继续已有会话和删除会话。
+- 流式输出：`POST /api/chat/stream` 支持逐步返回模型回答。
+- RAG 调用日志：保存每次问题、回答、耗时和检索到的 chunks，并支持按会话查询。
+- 前端工作台：支持上传文档、查看文档列表、提问、展示回答和引用来源。
+- Agent 工具：支持文档检索、文档总结、文档列表和创建笔记。
+- Guardrails：支持输入注入检查、工具权限检查和输出引用检查。
+- Trace 追踪：`/api/chat` 返回 `run_id`，可按 `run_id` 查询模型和工具调用步骤。
+- 观测统计：`GET /api/traces/stats` 统计平均响应时间、失败率和平均工具调用次数。
+- 评测脚本：支持统计检索命中、引用完整率和失败原因。
 
 ## 前端截图
 
 ![Knowledge Agent 前端工作台](docs/screenshots/frontend-workbench.png)
+
+![Knowledge Agent Trace 面板](docs/screenshots/trace-panel.png)
 
 ## 项目架构图
 
@@ -624,6 +634,101 @@ RAG 调用日志会保存：
   -> 真正执行工具
 ```
 
+## Observability 和 Trace
+
+第 8 周开始，项目增加了 Agent 运行追踪能力。它解决的问题是：当一次问答变慢、没有检索到资料、工具调用失败或模型返回异常时，不能只看最终回答，而要看到这次请求中每一步发生了什么。
+
+一次普通问答现在会多返回一个 `run_id`：
+
+```txt
+POST /api/chat
+  -> ChatService 创建 TraceRecorder
+  -> LLMService / AgentService 写入 trace step
+  -> ChatResponse 返回 answer、sources、run_id
+  -> 前端用 run_id 请求 GET /api/traces/{run_id}
+  -> Trace 面板展示每一步 input、output、latency_ms、status
+```
+
+Trace 核心表是 `agent_traces`，主要字段如下：
+
+| 字段 | 作用 |
+| --- | --- |
+| `run_id` | 一次完整请求的唯一编号，同一次请求的所有 step 共享它 |
+| `step` | 当前请求里的第几步 |
+| `tool_name` | 工具调用名称；模型或系统步骤为空 |
+| `input` | 当前步骤的输入摘要 |
+| `output` | 当前步骤的输出摘要或错误信息 |
+| `latency_ms` | 当前步骤耗时，单位毫秒 |
+| `status` | 当前步骤状态，例如 `success`、`failed`、`blocked` |
+
+当前提供 2 个 trace 查询接口：
+
+| 接口 | 作用 |
+| --- | --- |
+| `GET /api/traces/{run_id}` | 查看某一次请求的完整步骤 |
+| `GET /api/traces/stats` | 查看整体平均响应时间、失败率和平均工具调用次数 |
+
+排查问题时，推荐按这个顺序看：
+
+```txt
+1. 前端回答是否拿到了 run_id
+2. 用 run_id 查 /api/traces/{run_id}
+3. 看是否有 status = failed 或 blocked
+4. 看 output.error 是否有明确错误
+5. 看哪一步 latency_ms 最大
+6. 再决定是检索问题、工具问题、模型问题、引用问题还是性能问题
+```
+
+如果把一条数据代入流程，可以这样理解：
+
+```txt
+假设我是一条用户问题：“这个文档主要讲了什么？”
+
+我先从前端进入 POST /api/chat。
+后端给我分配一个 run_id。
+如果我触发了模型调用，LLMService 会记录模型、prompt 预览、token 和耗时。
+如果我触发了工具调用，AgentService 会记录工具名、参数、返回摘要和状态。
+最后前端拿 run_id 查询 trace，把我经历过的每一步展示出来。
+```
+
+## RAG 评测报告
+
+第 9 周开始，项目增加离线评测流程。评测目标不是主观判断“回答看起来不错”，而是用固定题库和固定指标检查 RAG 是否真的命中正确资料。
+
+当前评测文件：
+
+| 文件 | 作用 |
+| --- | --- |
+| `eval/questions.json` | 30 条评测问题，包含标准答案、标准文件和来源页码 |
+| `eval/run_rag_eval.py` | 批量调用 `/api/chat`，保存每题回答、sources、run_id 和错误 |
+| `eval/analyze_results.py` | 计算 top-3 检索命中率，列出未命中的问题 |
+| `eval/analyze_citations.py` | 计算引用完整率，列出没有引用来源的回答 |
+| `eval/analyze_failures.py` | 把失败分成切分问题、检索问题、prompt 问题、模型幻觉、文档缺失 |
+| `eval/compare_optimization.py` | 对比参数调整前后的指标变化 |
+| `docs/week9-evaluation-report.md` | 评测流程、指标来源和面试表达 |
+
+当前可调参数：
+
+| 参数 | 默认值 | 作用 |
+| --- | --- | --- |
+| `RAG_CHUNK_SIZE` | `500` | 文档切分时每个 chunk 的最大字符数 |
+| `RAG_CHUNK_OVERLAP` | `50` | 相邻 chunk 重叠字符数 |
+| `RAG_TOP_K` | `3` | 检索时取前几个相似 chunks |
+| `MAX_RAG_DISTANCE` | `0.8` | 过滤低相关 chunks 的距离阈值 |
+
+指标必须来自脚本输出：
+
+```txt
+eval/questions.json 固定问题和标准来源
+eval/results.json 保存模型实际回答和 sources
+eval/report.json 计算 top-3 检索命中率
+eval/citation_report.json 计算引用完整率
+eval/failure_analysis.json 统计失败原因
+eval/optimization_report.json 记录参数前后对比
+```
+
+一句话：评测指标不是拍脑袋，而是由同一批问题、同一套脚本和可追溯的结果文件计算出来。
+
 ## 2 分钟 RAG Demo 脚本
 
 1. 打开 Swagger：`http://127.0.0.1:8000/docs`。
@@ -634,6 +739,8 @@ RAG 调用日志会保存：
 6. 用 `POST /api/chat` 提问：“这个文档是做什么用的？”，展示回答和 `sources` 引用来源。
 7. 用 `POST /api/chat/stream` 展示流式输出。
 8. 用 `GET /api/chat/sessions/{session_id}/rag-logs` 展示这次回答背后的检索资料、距离分数和耗时。
+9. 用回答里的 `run_id` 请求 `GET /api/traces/{run_id}`，展示模型和工具调用 trace。
+10. 用 `GET /api/traces/stats` 展示平均响应时间、失败率和平均工具调用次数。
 
 可以这样介绍项目：
 
@@ -692,3 +799,17 @@ RAG 调用日志会保存：
 - [x] Day 47：增加输出检查，无引用确定性回答会被拒答并记录
 - [x] Day 48：准备 20 条安全测试样例并记录通过结果
 - [x] Day 49：修复本周问题，README 增加 Guardrails 安全设计说明
+- [x] Day 50：设计 trace 数据结构，建立 `agent_traces` 表
+- [x] Day 51：记录模型调用的模型名、token、耗时和状态
+- [x] Day 52：记录工具调用参数、返回摘要和错误信息
+- [x] Day 53：前端展示 trace 步骤并隐藏过长原始参数
+- [x] Day 54：统计平均响应时间、失败率和平均工具调用次数
+- [x] Day 55：练习 5 类错误场景排查
+- [x] Day 56：README 增加 Observability 章节，补充 Trace 面板截图
+- [x] Day 57：整理 30 条评测问题，标注标准答案和来源页码
+- [x] Day 58：实现批量评测脚本，调用 RAG 接口并保存结果
+- [x] Day 59：计算 top-3 检索命中率，统计未命中问题
+- [x] Day 60：计算引用完整率，统计没有引用的回答
+- [x] Day 61：统计失败原因，输出失败分析表
+- [x] Day 62：增加检索参数对比脚本，支持记录指标前后变化
+- [x] Day 63：README 增加评测报告，说明指标来源

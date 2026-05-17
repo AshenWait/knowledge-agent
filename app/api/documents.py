@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.document import ChunkResponse, DocumentResponse
 from app.services.document import DocumentService
@@ -58,7 +59,11 @@ def upload_document(
         content_type=file.content_type or "",
         page_count=len(pages),
     )
-    chunks = split_pages(pages) #[{页码，切片码，文本}]
+    chunks = split_pages(
+        pages,
+        chunk_size=settings.rag_chunk_size,
+        overlap=settings.rag_chunk_overlap,
+    ) #[{页码，切片码，文本}]
 
     embedding_service = EmbeddingService()  #初始化向量服务器
     for chunk in chunks:
