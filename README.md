@@ -1,56 +1,183 @@
 # Knowledge Agent
 
-企业知识库 Agent，目标是在 3 个月内完成一个可以演示、可以部署、可以写进简历的 RAG + Agent 项目。
+一个面向企业知识库场景的 RAG + Agent 项目。用户可以上传 PDF、txt、markdown 文档，系统会自动解析、切分、向量化并保存到 PostgreSQL + pgvector；提问时，系统会检索相关片段、调用大模型生成回答，并返回引用来源和 trace 追踪信息。
 
-## 学习方式
+## 这个项目解决什么问题
 
-本项目采用“教练模式”推进：先讲最小概念，再由学习者亲自完成小任务，随后 review、纠错和总结。
+很多企业文档散落在 PDF、说明书、内部知识库和项目资料里，普通搜索只能按关键词匹配，无法稳定回答“这份资料到底说了什么”“答案来自哪里”“Agent 为什么这样回答”。
 
-后续 AI/Codex 助手请先阅读 [AGENTS.md](AGENTS.md)，不要默认直接代写完整功能。
+Knowledge Agent 解决的是：
 
-## 项目目标
+- 让用户用自然语言查询已上传文档。
+- 让回答必须带引用来源，方便追溯。
+- 让 Agent 工具调用有权限边界，避免乱执行写入或危险操作。
+- 让每次问答都有 trace，方便排查检索、模型、工具和输出检查问题。
+- 用评测集统计检索命中率、引用完整率和失败原因，而不是凭感觉判断效果。
 
-- 支持上传 PDF、txt、markdown 文档。
-- 解析文档并切分为 chunks。
-- 使用 PostgreSQL 保存文档元数据、chunks、会话、消息和 RAG 调用日志。
-- 使用 pgvector 保存 embedding 向量并进行相似度检索。
-- 基于 RAG 回答问题，并展示引用来源。
-- 支持聊天会话、聊天历史上下文、流式输出和 RAG 调用日志查询。
-- 后续支持 tool calling、权限确认、trace 日志和评测集。
+## 核心亮点
+
+- 文档处理：支持 PDF、txt、markdown 上传、解析、切分和入库。
+- 向量检索：使用 PostgreSQL + pgvector 保存 embedding，并按相似度检索 chunks。
+- RAG 问答：问题 -> 向量化 -> 检索 -> 拼接上下文 -> LLM 回答。
+- 引用溯源：回答返回文档名、页码、chunk_id、引用片段和距离分数。
+- 拒答机制：检索分数不足或缺少引用时，不让模型胡编。
+- Agent 工具：支持文档检索、文档总结、文档列表和创建笔记。
+- 权限控制：工具分为只读、写入、危险三级；写入工具需要确认，危险工具不开放。
+- Trace 追踪：记录模型调用、工具调用、输入输出摘要、耗时和状态。
+- 评测闭环：使用固定题库统计 top-3 检索命中率、引用完整率和失败分类。
+
+## 技术栈
+
+- 后端：Python、FastAPI、Pydantic、SQLAlchemy
+- 数据库：PostgreSQL、pgvector
+- 文档解析：pypdf
+- LLM 接入：OpenAI Python SDK 兼容接口
+- 前端：React
+- 工程能力：RAG、Tool Calling、Guardrails、Trace、离线评测
 
 ## 当前已实现能力
 
-- 文档上传：支持 PDF、txt、markdown，限制文件类型和 10MB 大小。
-- 文档解析：PDF 按页抽取文本，txt/markdown 统一为一页文本结构。
-- 文本切分：按 chunk size 和 overlap 切分，并保存页码和 chunk 顺序。
-- Embedding：使用 `text-embedding-v4` 生成向量。
-- 向量检索：使用 PostgreSQL + pgvector 做相似度搜索。
-- RAG 问答：用户问题 -> embedding -> 检索 chunks -> 拼接上下文 -> LLM 回答。
-- 引用来源：回答返回 `document_filename`、`page_number`、`chunk_id`、引用片段和 `distance`。
-- 拒答逻辑：检索距离超过阈值时返回“我在已上传文档里没有找到足够信息。”。
-- 聊天历史：支持会话列表、消息历史、继续已有会话和删除会话。
-- 流式输出：`POST /api/chat/stream` 支持逐步返回模型回答。
-- RAG 调用日志：保存每次问题、回答、耗时和检索到的 chunks，并支持按会话查询。
-- 前端工作台：支持上传文档、查看文档列表、提问、展示回答和引用来源。
+- 文档上传、解析、切分和 embedding 入库。
+- 基于 pgvector 的相似度检索。
+- 支持引用来源的 RAG 问答。
+- 检索不足时拒答，避免无来源回答。
+- 前端工作台支持上传文档、查看文档、提问和查看引用。
+- Agent 支持只读工具调用和受控写入工具。
+- Guardrails 支持输入注入检查、工具权限检查和输出引用检查。
+- Trace 面板支持按 run_id 查看一次问答的完整执行步骤。
+- 评测脚本支持统计检索命中、引用完整率和失败原因。
 
 ## 前端截图
 
 ![Knowledge Agent 前端工作台](docs/screenshots/frontend-workbench.png)
 
-## 技术栈
+## 项目架构图
 
-- Python
-- FastAPI
-- Pydantic
-- PostgreSQL
-- pgvector
-- SQLAlchemy
-- pydantic-settings + python-dotenv
-- OpenAI Python SDK（当前用于 DeepSeek 兼容接口）
-- python-multipart（文件上传表单解析）
-- pypdf（PDF 文本解析）
-- Uvicorn
-- Docker
+```mermaid
+flowchart LR
+    User["用户"] --> Frontend["React 前端"]
+    Frontend --> Api["FastAPI API 层"]
+
+    Api --> DocumentApi["文档接口"]
+    Api --> ChatApi["问答接口"]
+    Api --> TraceApi["Trace 接口"]
+
+    DocumentApi --> DocumentService["DocumentService<br/>上传、解析、切分"]
+    DocumentService --> Storage["本地文件存储<br/>原始 PDF / txt / markdown"]
+    DocumentService --> Database["PostgreSQL<br/>文档、chunks、会话、消息"]
+    DocumentService --> VectorStore["pgvector<br/>chunk embedding"]
+
+    ChatApi --> ChatService["ChatService<br/>RAG 问答"]
+    ChatService --> VectorStore
+    ChatService --> Database
+    ChatService --> LLM["LLM API<br/>生成回答"]
+    ChatService --> TraceRecorder["TraceRecorder<br/>记录运行步骤"]
+
+    ChatApi --> AgentService["AgentService<br/>工具调用主循环"]
+    AgentService --> ToolRegistry["Tool Registry<br/>权限等级、白名单、确认"]
+    AgentService --> Tools["Agent Tools<br/>检索、总结、列表、创建笔记"]
+    Tools --> Database
+    Tools --> VectorStore
+    Tools --> LLM
+    AgentService --> TraceRecorder
+
+    TraceRecorder --> TraceTable["agent_traces 表<br/>步骤、输入输出摘要、耗时、状态"]
+    TraceApi --> TraceTable
+    Frontend --> TraceApi
+```
+
+这张图从左到右读：
+
+- 用户只接触 React 前端，上传文档、提问和查看 trace 都从前端进入。
+- FastAPI 负责把请求分发给文档接口、问答接口和 trace 接口。
+- 文档链路负责把原始文件解析成 chunks，并保存元数据、原文片段和 embedding。
+- 问答链路先用 pgvector 检索相关 chunks，再调用 LLM 生成带引用的回答。
+- Agent 链路通过工具注册表控制权限，只允许当前会话开放的工具执行。
+- TraceRecorder 会把模型调用、工具调用、失败原因和耗时写入 `agent_traces`，前端再按 `run_id` 查询展示。
+
+## 核心流程图
+
+```mermaid
+flowchart TD
+    UploadStart["用户上传 PDF / txt / markdown"] --> UploadApi["POST /api/documents/upload"]
+    UploadApi --> ValidateFile["校验文件类型、大小和空内容"]
+    ValidateFile --> SaveFile["保存原始文件到 storage/uploads"]
+    SaveFile --> ParseText["解析文本<br/>PDF 按页抽取，txt / markdown 统一为文本页"]
+    ParseText --> SplitChunks["切分 chunks<br/>保留 document_id、page、chunk_index"]
+    SplitChunks --> EmbedChunks["EmbeddingService.embed_text()<br/>把每个 chunk 转成向量"]
+    EmbedChunks --> SaveDocument["写入 PostgreSQL<br/>documents / chunks"]
+    SaveDocument --> SaveVector["写入 pgvector<br/>chunk embedding"]
+
+    QuestionStart["用户提问"] --> ChatApi["POST /api/chat"]
+    ChatApi --> CreateRun["创建 run_id<br/>本次问答的追踪编号"]
+    CreateRun --> EmbedQuestion["问题向量化"]
+    EmbedQuestion --> RetrieveChunks["pgvector 相似度检索<br/>返回 top_k chunks"]
+    RetrieveChunks --> BuildPrompt["拼接 prompt<br/>问题 + 相关 chunks + 回答规则"]
+    BuildPrompt --> CallLLM["调用 LLM 生成回答"]
+    CallLLM --> BuildSources["整理引用来源<br/>文档名、页码、chunk_id、片段、distance"]
+    BuildSources --> OutputGuardrail["输出检查<br/>没有引用则拒答或拦截"]
+    OutputGuardrail --> SaveChat["保存会话消息和 RAG 日志"]
+    SaveChat --> ReturnAnswer["返回 answer + sources + run_id"]
+    ReturnAnswer --> ShowAnswer["前端展示回答和引用"]
+
+    CreateRun --> TraceStep["TraceRecorder 记录步骤"]
+    RetrieveChunks --> TraceStep
+    CallLLM --> TraceStep
+    OutputGuardrail --> TraceStep
+    TraceStep --> TraceTable["agent_traces 表"]
+    ReturnAnswer --> LoadTrace["GET /api/traces/{run_id}"]
+    LoadTrace --> ShowTrace["前端展示 trace 面板"]
+```
+
+这张流程图可以按两条线理解：
+
+- 文档线：上传文件后，系统先保存原文件，再解析文本、切分 chunks、生成 embedding，最后把元数据和向量分别保存到 PostgreSQL 和 pgvector。
+- 问答线：用户提问后，系统先把问题转成向量，检索相关 chunks，再把检索结果拼进 prompt 调用 LLM，最后返回回答、引用来源和 `run_id`。
+- 追踪线：同一次问答共享一个 `run_id`，检索、模型调用、输出检查等关键步骤会写入 `agent_traces`，前端可以用这个 `run_id` 查看完整执行过程。
+
+## 项目难点和解决方案
+
+| 难点 | 问题 | 解决方案 |
+| --- | --- | --- |
+| 引用溯源 | RAG 如果只返回自然语言答案，用户不知道答案来自哪份文档、哪一页，也无法判断回答是否可信。 | 检索结果保留 `document_filename`、`page_number`、`chunk_id`、`content` 和 `distance`，最终回答通过 `sources` 返回引用来源，前端展示文档名、页码和原文片段。 |
+| 拒答机制 | 检索不到相关资料时，如果仍然把问题交给模型自由回答，模型可能编出看似合理但没有来源的内容。 | 设置检索距离阈值；当相似度不足或没有可用 chunks 时，直接返回“我在已上传文档里没有找到足够信息。”；输出检查发现确定性回答没有引用时，也会拒答或拦截。 |
+| 工具权限 | Agent 一旦能调用工具，就需要区分哪些工具只读、哪些会写入数据、哪些危险，否则模型可能越权执行不该执行的操作。 | 用 Tool Registry 给工具分为只读、写入、危险三级；只读工具可直接执行，`create_note` 这类写入工具需要用户确认，删除类危险工具当前不开放；不同会话还有工具白名单。 |
+| Trace 排查 | 只看最终回答很难判断问题发生在哪里：可能是检索没命中、模型输出异常、工具参数错，也可能是输出检查拦截。 | 每次问答创建一个 `run_id`，通过 `TraceRecorder` 记录模型调用、工具调用、输入输出摘要、耗时和状态，写入 `agent_traces`，前端可以按 `run_id` 展示完整步骤。 |
+| 评测闭环 | 只凭肉眼试几个问题，很难证明 RAG 质量真的变好了，也无法判断参数调整是否有效。 | 建立固定评测集 `eval/questions.json`，批量调用 RAG 接口，统计 top-3 检索命中率、引用完整率和失败原因；优化 chunk size、top_k、score threshold 时，用同一套评测结果做前后对比。 |
+
+面试时可以这样总结这些难点：
+
+```txt
+这个项目不只是把文档丢给大模型回答，而是围绕可信度和可排查性做了工程设计。
+我重点处理了五个问题：回答必须能引用溯源，资料不足时要拒答，Agent 工具调用要有权限边界，每次运行要能通过 trace 排查，RAG 效果要能通过评测集量化。
+所以这个项目既能演示功能，也能解释回答质量、安全边界和问题定位流程。
+```
+
+## 简历项目描述
+
+第一版简历项目描述见：[docs/resume-project-description.md](docs/resume-project-description.md)。
+
+这版简历描述避免使用空泛的掌握程度表达，改用“实现、设计、构建、优化、统计”来说明实际交付。
+
+## 项目面试问题
+
+20 个项目面试问题和回答见：[docs/interview-questions.md](docs/interview-questions.md)。
+
+这些问题重点覆盖项目架构、RAG、Agent 工具权限、trace 排查和评测优化。
+
+## Demo 演示脚本
+
+3-5 分钟录屏脚本见：[docs/demo-script.md](docs/demo-script.md)。
+
+脚本覆盖上传文档、chunk 检索、RAG 问答、引用来源、trace 查询和 Agent 工具权限演示。
+
+## MCP 加分项
+
+MCP 基本概念和本项目只读工具边界见：[docs/day68-mcp-basics.md](docs/day68-mcp-basics.md)。
+
+本项目的 MCP 方向只计划暴露 `list_documents` 和 `search_documents` 这类只读能力，不开放删除、写入或本地命令执行。
+
+第 10 周部署和 MCP 设计总结见：[docs/week10-deployment-and-mcp.md](docs/week10-deployment-and-mcp.md)。
 
 ## 本地运行
 
@@ -74,11 +201,30 @@ pip install -r requirements.txt
 
 创建 `.env` 文件：
 
-```env
-DATABASE_URL=postgresql+psycopg://postgres:你的密码@127.0.0.1:5433/knowledge_agent
-DEEPSEEK_API_KEY=你的 DeepSeek API Key
-DASHSCOPE_API_KEY=你的阿里云百炼 API Key
+```powershell
+Copy-Item .env.example .env
 ```
+
+本地直接运行后端时，`DATABASE_URL` 使用 Windows 主机能访问的数据库地址：
+
+```env
+DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5433/knowledge_agent
+```
+
+Docker Compose 运行后端时，后端容器通过服务名 `db` 访问数据库：
+
+```env
+DOCKER_DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/knowledge_agent
+```
+
+同时把下面两个值替换成自己的真实 key，不要提交 `.env`：
+
+```env
+DEEPSEEK_API_KEY=replace-with-your-deepseek-api-key
+DASHSCOPE_API_KEY=replace-with-your-dashscope-api-key
+```
+
+完整模板见 [.env.example](.env.example)。
 
 启动服务：
 
@@ -105,7 +251,7 @@ docker ps --filter "name=knowledge-agent-pgvector"
 启动前端：
 
 ```powershell
-cd frontend
+cd C:\Users\yangp\Desktop\knowledge-agent\frontend
 npm install
 npm run dev -- --host 127.0.0.1 --port 5174
 ```
@@ -129,6 +275,62 @@ $env:PYTHONPATH="."
 .\.venv\Scripts\python.exe tests\check_database.py
 .\.venv\Scripts\python.exe tests\create_tables.py
 ```
+
+## 
+
+## Docker Compose 一键启动
+
+Docker Compose 会同时启动：
+
+```txt
+db   PostgreSQL + pgvector
+api  FastAPI 后端
+```
+
+启动：
+
+```powershell
+docker compose up --build
+```
+
+另开一个 PowerShell 验证：
+
+```powershell
+curl.exe http://127.0.0.1:8000/health
+```
+
+预期返回：
+
+```json
+{
+  "status": "ok",
+  "app": "Knowledge Agent",
+  "version": "0.1.0",
+  "environment": "local"
+}
+```
+
+浏览器访问：
+
+```txt
+http://127.0.0.1:8000/docs
+```
+
+查看容器状态：
+
+```powershell
+docker compose ps
+```
+
+停止服务：
+
+```powershell
+docker compose down
+```
+
+不要随便执行 `docker compose down -v`，它会删除数据库 volume。
+
+新目录验证流程见：[docs/day67-deployment-verification.md](docs/day67-deployment-verification.md)。
 
 ## 文档上传和解析验证
 

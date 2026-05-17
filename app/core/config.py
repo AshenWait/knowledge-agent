@@ -9,6 +9,13 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     environment: str = "local"
     database_url:str
+    docker_database_url: str | None = None
+    postgres_user: str = "postgres"
+    postgres_password: str = "postgres"
+    postgres_db: str = "knowledge_agent"
+    postgres_host_port: int = 5433
+    api_host_port: int = 8000
+    api_image_tag: str = "day66"
     deepseek_api_key:str
     dashscope_api_key: str
     embedding_model: str = "text-embedding-v4"
@@ -18,7 +25,11 @@ class Settings(BaseSettings):
     max_chat_message_length: int = 2000 # 用户消息长度
 
     #告诉 Pydantic：请从项目根目录的 .env 文件读取配置，编码用 utf-8。
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()
