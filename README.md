@@ -189,158 +189,71 @@ MCP 基本概念和本项目只读工具边界见：[docs/day68-mcp-basics.md](d
 
 第 10 周部署和 MCP 设计总结见：[docs/week10-deployment-and-mcp.md](docs/week10-deployment-and-mcp.md)。
 
-## 本地运行
+## 启动项目
 
-创建虚拟环境：
+### 0. 前置条件（新电脑需要装一次）
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — 跑数据库和后端
+- [Node.js](https://nodejs.org/) — 跑前端（带 npm）
+- [Git](https://git-scm.com/) — 克隆代码
+
+安装后重启终端，验证：
 
 ```powershell
-python -m venv .venv
+docker --version
+node --version
+git --version
 ```
 
-激活虚拟环境：
+### 1. 克隆代码 + 配置环境变量
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-安装依赖：
-
-```powershell
-pip install -r requirements.txt
-```
-
-创建 `.env` 文件：
-
-```powershell
+git clone https://github.com/AshenWait/knowledge-agent.git
+cd knowledge-agent
 Copy-Item .env.example .env
 ```
 
-本地直接运行后端时，`DATABASE_URL` 使用 Windows 主机能访问的数据库地址：
+编辑 `.env`，填入自己的 API key：
 
 ```env
-DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5433/knowledge_agent
+DEEPSEEK_API_KEY=你的 DeepSeek API key
+DASHSCOPE_API_KEY=你的百炼 API key
 ```
 
-Docker Compose 运行后端时，后端容器通过服务名 `db` 访问数据库：
-
-```env
-DOCKER_DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/knowledge_agent
-```
-
-同时把下面两个值替换成自己的真实 key，不要提交 `.env`：
-
-```env
-DEEPSEEK_API_KEY=replace-with-your-deepseek-api-key
-DASHSCOPE_API_KEY=replace-with-your-dashscope-api-key
-```
-
-完整模板见 [.env.example](.env.example)。
-
-启动服务：
-
-```powershell
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-如果虚拟环境启动器路径异常，可以使用更稳的写法：
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-启动数据库：
-
-1. 启动 Docker Desktop，等左下角显示 Engine running。
-2. 启动容器：
-
-```
-docker start knowledge-agent-pgvector
-docker ps --filter "name=knowledge-agent-pgvector"
-```
-
-启动前端：
-
-```powershell
-cd C:\Users\yangp\Desktop\knowledge-agent\frontend
-npm install
-npm run dev -- --host 127.0.0.1 --port 5174
-```
-
-前端开在：
-
-```
-http://127.0.0.1:5174/
-```
-
-启动后访问：
-
-- API 首页：http://127.0.0.1:8000
-- 健康检查：http://127.0.0.1:8000/health
-- 接口文档：http://127.0.0.1:8000/docs
-
-常用验证命令：
-
-```powershell
-$env:PYTHONPATH="."
-.\.venv\Scripts\python.exe tests\check_database.py
-.\.venv\Scripts\python.exe tests\create_tables.py
-```
-
-## 
-
-## Docker Compose 一键启动
-
-Docker Compose 会同时启动：
-
-```txt
-db   PostgreSQL + pgvector
-api  FastAPI 后端
-```
-
-启动：
+### 2. 启动后端 + 数据库（Docker Compose）
 
 ```powershell
 docker compose up --build
 ```
 
-另开一个 PowerShell 验证：
+这一步会拉起 PostgreSQL + pgvector（端口 5433）和 FastAPI 后端（端口 8000）。
+首次构建镜像需要几分钟，之后启动很快。
+
+### 3. 启动前端
 
 ```powershell
-curl.exe http://127.0.0.1:8000/health
+cd frontend
+npm install           # 仅首次
+npm run dev
 ```
 
-预期返回：
+默认开在 `http://localhost:5173`。
 
-```json
-{
-  "status": "ok",
-  "app": "Knowledge Agent",
-  "version": "0.1.0",
-  "environment": "local"
-}
-```
+### 访问地址
 
-浏览器访问：
+| 地址 | 内容 |
+|------|------|
+| http://localhost:5173 | 前端工作台 |
+| http://localhost:8000 | API |
+| http://localhost:8000/docs | 接口文档 |
+| http://localhost:8000/health | 健康检查 |
 
-```txt
-http://127.0.0.1:8000/docs
-```
-
-查看容器状态：
+### 常用命令
 
 ```powershell
-docker compose ps
+docker compose ps         # 查看容器状态
+docker compose down       # 停止服务（⚠ 不加 -v，否则删数据库）
 ```
-
-停止服务：
-
-```powershell
-docker compose down
-```
-
-不要随便执行 `docker compose down -v`，它会删除数据库 volume。
-
-新目录验证流程见：[docs/day67-deployment-verification.md](docs/day67-deployment-verification.md)。
 
 ## 文档上传和解析验证
 
